@@ -1,0 +1,175 @@
+# GoalDiggers Football Betting Platform - Git Ignore Configuration
+
+# ============================================================================
+# LARGE BINARY FILES & MODELS (Use Git LFS)
+# ============================================================================
+
+# Machine Learning Models
+*.joblib
+*.pkl
+*.pickle
+models/predictor_model*.joblib
+models/trained/
+models/*/trained/
+
+# Database Files
+*.db
+data/football.db
+database/football.db
+data/model_performance.db
+data/prediction_history.db
+mlflow.db
+
+# Large Data Files
+data/raw/
+data/scraped/
+data/processed/large_datasets/
+
+# ============================================================================
+# CACHE & TEMPORARY FILES
+# ============================================================================
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Cache Directories
+cache/
+.cache/
+dashboard/cache/
+data/cache/
+
+# Log Files
+*.log
+logs/
+*.tmp
+*.temp
+
+# MLflow Artifacts
+mlruns/
+mlartifacts/
+
+# ============================================================================
+# ENVIRONMENT & CONFIGURATION
+# ============================================================================
+
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables
+.env
+.env.backup
+.env.local
+.env.production
+.env.staging
+
+# API Keys & Secrets
+*.key
+*.pem
+secrets/
+.secrets/
+api_keys/
+
+# Configuration Backups
+config/*.backup
+config/*.bak
+
+# ============================================================================
+# IDE & EDITOR FILES
+# ============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# SYSTEM FILES
+# ============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ============================================================================
+# BACKUP & ARCHIVE DIRECTORIES
+# ============================================================================
+
+# Integration Backups
+integration_backup_*/
+cleanup_backup/
+backup_*/
+
+# ============================================================================
+# TESTING & DEVELOPMENT
+# ============================================================================
+
+# Test Coverage
+htmlcov/
+.coverage
+.pytest_cache/
+coverage.xml
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# ============================================================================
+# PROJECT SPECIFIC
+# ============================================================================
+
+# Screenshots & Media (except logos)
+*.jpg
+*.jpeg
+screen*.jpg
+!GoalDiggers_logo.png
+!GoalDiggers_favicon.ico
+
+# Performance Reports
+*.prof
+population_progress.json
