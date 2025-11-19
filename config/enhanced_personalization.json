@@ -1,0 +1,29 @@
+{
+  "user_behavior_tracking": {
+    "dashboard_preferences": true,
+    "prediction_patterns": true,
+    "engagement_metrics": true,
+    "time_spent_analysis": true,
+    "feature_usage_tracking": true
+  },
+  "adaptive_interface": {
+    "dynamic_layout": true,
+    "personalized_widgets": true,
+    "smart_recommendations": true,
+    "contextual_help": true,
+    "progressive_complexity": true
+  },
+  "content_personalization": {
+    "league_preferences": true,
+    "team_following": true,
+    "betting_style_adaptation": true,
+    "insight_complexity_level": true,
+    "notification_preferences": true
+  },
+  "learning_algorithms": {
+    "collaborative_filtering": true,
+    "content_based_filtering": true,
+    "hybrid_recommendations": true,
+    "real_time_adaptation": true
+  }
+}

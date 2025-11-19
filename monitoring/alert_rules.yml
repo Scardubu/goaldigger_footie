@@ -1,0 +1,152 @@
+# Prometheus Alert Rules for GoalDiggers Platform
+# Production monitoring alerts
+
+groups:
+  - name: goaldiggers_critical_alerts
+    interval: 30s
+    rules:
+      # High API Error Rate
+      - alert: HighAPIErrorRate
+        expr: rate(api_requests_total{status=~"5.."}[5m]) / rate(api_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 500
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}MB (threshold: 500MB)"
+          
+      # High Prediction Error Rate
+      - alert: HighPredictionErrorRate
+        expr: rate(prediction_errors_total[10m]) / rate(predictions_total[10m]) > 0.10
+        for: 10m
+        labels:
+          severity: critical
+          component: ml_pipeline
+        annotations:
+          summary: "High prediction error rate"
+          description: "Prediction error rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+          
+      # Circuit Breaker Open
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: api_integration
+        annotations:
+          summary: "Circuit breaker is open for {{ $labels.api }}"
+          description: "API {{ $labels.api }} circuit breaker has been open for 2+ minutes"
+          
+      # Database Connection Failed
+      - alert: DatabaseConnectionFailed
+        expr: database_connection_errors_total > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection errors detected"
+          description: "{{ $value }} database connection errors in the last minute"
+          
+      # Low Prediction Accuracy
+      - alert: LowPredictionAccuracy
+        expr: prediction_accuracy < 0.70
+        for: 30m
+        labels:
+          severity: warning
+          component: ml_pipeline
+        annotations:
+          summary: "Prediction accuracy below threshold"
+          description: "Prediction accuracy is {{ $value | humanizePercentage }} (threshold: 70%)"
+          
+      # API Rate Limit Hit
+      - alert: APIRateLimitHit
+        expr: rate_limit_hits_total > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: api_integration
+        annotations:
+          summary: "API rate limits being hit frequently"
+          description: "{{ $value }} rate limit hits in the last 5 minutes"
+          
+      # Cache Miss Rate High
+      - alert: HighCacheMissRate
+        expr: rate(cache_misses_total[10m]) / rate(cache_requests_total[10m]) > 0.50
+        for: 15m
+        labels:
+          severity: info
+          component: caching
+        annotations:
+          summary: "High cache miss rate"
+          description: "Cache miss rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+          
+      # Slow API Response Time
+      - alert: SlowAPIResponse
+        expr: histogram_quantile(0.95, rate(api_request_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Slow API response times"
+          description: "95th percentile API response time is {{ $value }}s (threshold: 5s)"
+          
+      # Data Staleness
+      - alert: StaleData
+        expr: time() - data_last_updated_timestamp > 7200
+        for: 5m
+        labels:
+          severity: warning
+          component: data_pipeline
+        annotations:
+          summary: "Data has not been updated recently"
+          description: "Data age is {{ $value | humanizeDuration }} (threshold: 2 hours)"
+
+  - name: goaldiggers_performance_alerts
+    interval: 60s
+    rules:
+      # Prediction Latency High
+      - alert: HighPredictionLatency
+        expr: histogram_quantile(0.90, rate(prediction_duration_seconds_bucket[5m])) > 3
+        for: 10m
+        labels:
+          severity: warning
+          component: ml_pipeline
+        annotations:
+          summary: "High prediction latency"
+          description: "90th percentile prediction time is {{ $value }}s (threshold: 3s)"
+          
+      # Disk Space Low
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} free (threshold: 15%)"
+          
+      # CPU Usage High
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 15m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% (threshold: 85%)"

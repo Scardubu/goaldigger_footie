@@ -1,0 +1,118 @@
+{
+  "application": {
+    "name": "GoalDiggers Football Prediction Platform",
+    "version": "1.0.0",
+    "environment": "production",
+    "debug": false,
+    "max_workers": 4,
+    "base_url": "https://goaldiggers-api.example.com"
+  },
+  "services": {
+    "api": {
+      "host": "0.0.0.0",
+      "port": 5000,
+      "workers": 4,
+      "timeout": 60,
+      "log_level": "info",
+      "cors_origins": ["https://goaldiggers.example.com", "https://app.goaldiggers.example.com"],
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 120
+      }
+    },
+    "dashboard": {
+      "host": "0.0.0.0",
+      "port": 8501,
+      "theme": "dark",
+      "allow_remote_access": true,
+      "enable_caching": true,
+      "cache_ttl": 3600
+    },
+    "sse_server": {
+      "host": "0.0.0.0",
+      "port": 8079,
+      "max_connections": 1000,
+      "heartbeat_interval": 30
+    }
+  },
+  "database": {
+    "uri": "sqlite:///data/football.db",
+    "pool_size": 10,
+    "max_overflow": 20,
+    "pool_timeout": 30,
+    "pool_recycle": 3600,
+    "backup": {
+      "enabled": true,
+      "interval_hours": 24,
+      "retention_days": 7
+    }
+  },
+  "models": {
+    "preload": true,
+    "cache_predictions": true,
+    "prediction_ttl": 3600,
+    "default_model": "ensemble_v3",
+    "models_directory": "models/predictive/saved_models",
+    "batch_size": 32
+  },
+  "logging": {
+    "file_path": "logs/app.log",
+    "max_size_mb": 100,
+    "backup_count": 10,
+    "level": "info",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "security": {
+    "api_key_required": true,
+    "jwt_secret": "CHANGE_ME_IN_PRODUCTION",
+    "jwt_expiration_minutes": 60,
+    "admin_tokens": {
+      "enabled": true,
+      "expiration_days": 30
+    },
+    "ssl": {
+      "enabled": true,
+      "cert_path": "/etc/ssl/certs/goaldiggers.crt",
+      "key_path": "/etc/ssl/private/goaldiggers.key"
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "prometheus": {
+      "enabled": true,
+      "port": 9090
+    },
+    "alerts": {
+      "email": {
+        "enabled": true,
+        "sender": "alerts@goaldiggers.example.com",
+        "recipients": ["admin@goaldiggers.example.com"]
+      },
+      "slack": {
+        "enabled": false,
+        "webhook_url": ""
+      }
+    }
+  },
+  "data_ingestion": {
+    "batch_size": 100,
+    "concurrent_workers": 4,
+    "retry_attempts": 3,
+    "backoff_factor": 2,
+    "schedule": "0 */6 * * *"
+  },
+  "performance": {
+    "cache_enabled": true,
+    "cache_type": "redis",
+    "cache_uri": "redis://localhost:6379/0",
+    "request_timeout": 30,
+    "connection_timeout": 10
+  },
+  "feature_flags": {
+    "advanced_predictions": true,
+    "user_personalization": true,
+    "live_updates": true,
+    "social_sharing": false,
+    "beta_features": false
+  }
+}

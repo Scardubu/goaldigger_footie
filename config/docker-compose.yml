@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: insights
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports: ["5432:5432"]
+  mlflow:
+    image: mlflow:latest
+    environment:
+      BACKEND_STORE_URI: sqlite:///mlflow.db
+      ARTIFACT_ROOT: ./mlruns
+    ports: ["5000:5000"]
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports: ["9090:9090"]

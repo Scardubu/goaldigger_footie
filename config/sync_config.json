@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "sync_interval": 300,
+  "priority_matches_interval": 60,
+  "batch_size": 50,
+  "concurrent_requests": 5
+}

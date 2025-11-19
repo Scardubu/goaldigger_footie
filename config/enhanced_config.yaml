@@ -1,0 +1,446 @@
+# Enhanced Configuration for GoalDiggers Platform
+# Includes settings for automated startup, enhanced ML pipeline, and real-time validation
+
+# Database Configuration
+database:
+  uri: "${DATA_DIR}/football.db"
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+  echo: false
+  connect_args:
+    check_same_thread: false
+
+# Enhanced Startup Configuration
+startup:
+  auto_launch_ui: true
+  parallel_initialization: true
+  startup_timeout: 300  # 5 minutes
+  retry_attempts: 3
+  health_check_interval: 5
+  component_timeout: 60
+
+# Firecrawl Scraper Server Configuration
+scraping:
+  server:
+    host: localhost
+    port: 3000
+    health_check_timeout: 60  # Increased timeout for better reliability
+    auto_start: true
+    build_on_startup: true
+    restart_on_failure: true
+    max_restart_attempts: 3
+    node_env: production
+    log_level: info
+    # Enhanced server settings
+    install_dependencies: true
+    build_timeout: 120  # 2 minutes for build
+    install_timeout: 300  # 5 minutes for npm install
+    process_cleanup_timeout: 10  # 10 seconds for graceful shutdown
+
+  # Enhanced request configuration
+  request:
+    user_agents:
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15"
+    max_retries: 3
+    retry_delay: 2
+    timeout: 30
+    rate_limit_delay: [1.0, 3.0]  # [min, max] seconds between requests
+
+  # Enhanced proxy configuration
+  proxy:
+    enabled: false
+    providers:
+      - "http://localhost:8118"
+    rotation_interval: 300
+    max_failures: 3
+    fallback_to_direct: true
+
+  # Enhanced Playwright configuration
+  playwright:
+    enabled: true
+    headless: true
+    timeout: 30000
+    max_retries: 3
+    retry_delay: 2
+    executable_path: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    browsers_path: "${PROJECT_ROOT}/pw_browsers"
+    stealth_mode: true  # Enable stealth mode for better anti-detection
+
+  # Data sources configuration
+  sources:
+    primary:
+      - name: "Football-Data"
+        type: "json"
+        url: "https://api.football-data.org/v4"
+        auth_type: "bearer"
+        env_var: "FOOTBALL_DATA_API_KEY"
+        rate_limit: 10
+        timeout: 20
+        max_retries: 3
+        
+      - name: "API-Football"
+        type: "json"
+        url: "https://api-football-v1.p.rapidapi.com/v3"
+        auth_type: "header"
+        headers:
+          "X-RapidAPI-Key": "${API_FOOTBALL_KEY}"
+          "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        rate_limit: 5
+        timeout: 15
+        
+      - name: "Understat"
+        type: "html"
+        url: "https://understat.com"
+        use_playwright: true
+        anti_scraping_level: "high"
+        timeout: 45
+        max_retries: 5
+        
+      - name: "FBref"
+        type: "html"
+        url: "https://fbref.com"
+        use_playwright: true
+        anti_scraping_level: "high"
+        timeout: 45
+        max_retries: 5
+
+# Enhanced AI/ML Configuration
+models:
+  enhanced_pipeline:
+    model_dir: "${PROJECT_ROOT}/models/trained"
+    ensemble_methods:
+      - xgboost
+      - lightgbm
+      - random_forest
+    feature_engineering:
+      enabled: true
+      include_weather: true
+      include_form: true
+      include_h2h: true
+      include_style: true
+      include_motivation: true
+      include_home: true
+    validation:
+      cross_validation_folds: 5
+      test_size: 0.2
+      random_state: 42
+    hyperparameter_optimization:
+      enabled: true
+      max_trials: 100
+      timeout: 3600  # 1 hour
+    model_selection:
+      metric: "accuracy"
+      cv_folds: 5
+
+# Enhanced Validation Configuration
+validation:
+  ai_validator:
+    impute_on_missing: true
+    drift_threshold: 0.1
+    outlier_detection: true
+    schema_validation: true
+    data_quality_checks: true
+  preprocessing:
+    validation:
+      imputer_params:
+        max_iter: 10
+        random_state: 42
+        initial_strategy: "median"
+      outlier_params:
+        contamination: "auto"
+        random_state: 42
+      drift_threshold_relative: 0.1
+      strict_weather_validation: false  # Relaxed for better compatibility
+
+# Enhanced System Monitoring
+monitoring:
+  enabled: true
+  metrics_collection: true
+  performance_tracking: true
+  error_reporting: true
+  health_checks:
+    interval: 30  # seconds
+    timeout: 10
+    max_failures: 3
+  logging:
+    level: "INFO"
+    file_rotation: true
+    max_file_size: "10MB"
+    backup_count: 5
+
+# Enhanced Dashboard Configuration
+dashboard:
+  auto_launch: true
+  port: 8501
+  host: "localhost"
+  theme: "light"
+  page_config:
+    page_title: "GoalDiggers - Football Betting Insights"
+    page_icon: "⚽"
+    layout: "wide"
+    initial_sidebar_state: "expanded"
+  features:
+    real_time_updates: true
+    interactive_charts: true
+    data_export: true
+    user_feedback: true
+    admin_controls: true
+
+# Enhanced Error Handling
+error_handling:
+  graceful_degradation: true
+  fallback_strategies: true
+  retry_mechanisms: true
+  error_reporting: true
+  user_notifications: true
+
+# Enhanced Performance Configuration
+performance:
+  caching:
+    enabled: true
+    ttl: 3600  # 1 hour
+    max_size: 1000
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+    chunk_size: 100
+  memory_optimization:
+    enabled: true
+    garbage_collection: true
+    memory_limit: "400MB"
+
+# Enhanced Security Configuration
+security:
+  api_key_rotation: false
+  request_signing: false
+  rate_limiting: true
+  input_validation: true
+  output_sanitization: true
+
+# Enhanced Development Configuration
+development:
+  debug_mode: false
+  hot_reload: false
+  verbose_logging: false
+  test_mode: false
+  mock_data: false
+
+# UI Configuration
+ui:
+  auto_launch: true
+  port: 8501
+  host: localhost
+  theme: light
+  page_title: "GoalDiggers - Football Betting Insights"
+  favicon: "⚽"
+  
+  dashboard:
+    refresh_interval: 30  # seconds
+    max_data_points: 1000
+    chart_height: 400
+    enable_dark_mode: true
+
+# API Configuration
+api:
+  keys:
+    football_data: "${FOOTBALL_DATA_API_KEY}"
+    odds_api: "${ODDS_API_KEY}"
+    openrouter: "${OPENROUTER_API_KEY}"
+    gemini: "${GEMINI_API_KEY}"
+    
+  endpoints:
+    football_data:
+      base_url: "https://api.football-data.org/v4"
+      timeout: 20
+      max_retries: 3
+      
+    odds_api:
+      base_url: "https://api.the-odds-api.com/v4"
+      timeout: 15
+      max_retries: 3
+
+# Paths Configuration
+paths:
+  project_root: "${PROJECT_ROOT}"
+  data:
+    raw: "${PROJECT_ROOT}/data/raw"
+    processed: "${PROJECT_ROOT}/data/processed"
+    reference:
+      matches: "${PROJECT_ROOT}/data/reference/valid_matches.csv"
+  models: "${PROJECT_ROOT}/models"
+  logs: "${PROJECT_ROOT}/logs"
+  cache: "${PROJECT_ROOT}/cache"
+  reports: "${PROJECT_ROOT}/reports"
+
+# System Performance Configuration
+system:
+  performance:
+    max_concurrent_requests: 10
+    request_timeout: 30
+    connection_pool_size: 20
+    memory_limit: "400MB"
+    cpu_limit: 4
+    
+  monitoring:
+    enabled: true
+    interval: 60  # seconds
+    retention_days: 30
+    alert_thresholds:
+      memory_usage: 0.8
+      cpu_usage: 0.7
+      disk_usage: 0.9
+      
+  logging:
+    level: INFO
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    file_rotation: true
+    max_file_size: "10MB"
+    backup_count: 5
+
+# Data Integration Configuration
+data_integration:
+  max_concurrent_requests: 10
+  default_leagues:
+    - premier_league
+    - la_liga
+    - serie_a
+    - bundesliga
+    - ligue_1
+    - eredivisie
+    
+  update_schedule:
+    matches: "0 */6 * * *"  # Every 6 hours
+    odds: "*/30 * * * *"    # Every 30 minutes
+    standings: "0 2 * * *"  # Daily at 2 AM
+    
+  validation:
+    enabled: true
+    strict_mode: false
+    auto_correction: true
+
+# Enhanced Scraping Configuration
+enhanced_scraping:
+  anti_scraping:
+    enabled: true
+    adaptive_delays: true
+    source_reputation:
+      whoscored: 1.8
+      api-football: 1.5
+      football-data: 1.3
+      sofascore: 1.6
+      espn: 1.2
+      bbc: 1.0
+      wikipedia: 0.7
+    browser_fingerprinting: true
+    request_delay:
+      min: 1.5
+      max: 5.0
+      behavioral_variance: true
+      time_awareness: true
+    session_management:
+      max_requests_per_session: 15
+      rotate_headers_per_session: true
+      session_cooldown: 30
+
+# Prediction Pipeline Configuration
+prediction:
+  context_features:
+    h2h: true
+    style: true
+    motivation: true
+    home: true
+    weather: false  # Coming soon
+    
+  model_selection:
+    default_model: "ensemble"
+    fallback_model: "xgboost"
+    confidence_threshold: 0.7
+    
+  value_betting:
+    enabled: true
+    kelly_criterion: true
+    min_value_threshold: 0.05
+    max_stake_percentage: 0.1
+    
+  real_time_updates:
+    enabled: true
+    update_interval: 300  # 5 minutes
+    min_confidence: 0.6
+
+# Error Handling and Recovery
+error_handling:
+  retry_strategy:
+    max_retries: 3
+    backoff_factor: 2
+    max_backoff: 60
+    
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5
+    recovery_timeout: 300
+    
+  graceful_degradation:
+    enabled: true
+    fallback_sources: true
+    cache_fallback: true
+
+# Security Configuration
+security:
+  api_key_rotation: false
+  request_signing: false
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    burst_limit: 10
+    
+  data_encryption:
+    enabled: false
+    algorithm: "AES-256"
+    
+  access_control:
+    enabled: false
+    admin_users: []
+    read_only_users: []
+
+# Environment-specific overrides
+env:
+  development:
+    logging:
+      level: DEBUG
+    ui:
+      auto_launch: true
+    monitoring:
+      enabled: true
+      
+  production:
+    logging:
+      level: WARNING
+    ui:
+      auto_launch: false
+    monitoring:
+      enabled: true
+    security:
+      data_encryption: true
+      api_key_rotation: true
+      
+  testing:
+    logging:
+      level: DEBUG
+    ui:
+      auto_launch: false
+    database:
+      uri: ":memory:"
+    monitoring:
+      enabled: false
+
+# Required environment variables
+required_env_vars:
+  - FOOTBALL_DATA_API_KEY
+  - PROJECT_ROOT
+  - DATA_DIR 

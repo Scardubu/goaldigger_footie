@@ -1,0 +1,183 @@
+{
+  "dashboard": {
+    "title": "GoalDiggers Platform Overview",
+    "tags": [
+      "goaldiggers",
+      "production",
+      "monitoring"
+    ],
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(goaldiggers_api_requests_total{status=\"success\"}[5m]) / rate(goaldiggers_api_requests_total[5m])",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 0.95,
+                  "color": "yellow"
+                },
+                {
+                  "value": 0.99,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Cache Hit Rate (L1)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "goaldiggers_cache_hit_rate{tier=\"L1\"}",
+            "legendFormat": "L1 Hit Rate"
+          }
+        ],
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": 0,
+                  "color": "red"
+                },
+                {
+                  "value": 0.7,
+                  "color": "yellow"
+                },
+                {
+                  "value": 0.85,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "API P95 Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(goaldiggers_api_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Latency"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Latency"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Active Users",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "goaldiggers_active_users_total",
+            "legendFormat": "Active Users"
+          }
+        ],
+        "gridPos": {
+          "x": 18,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        }
+      },
+      {
+        "id": 5,
+        "title": "Predictions Per Minute",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(goaldiggers_predictions_total[1m]) * 60",
+            "legendFormat": "Predictions/min"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 6
+        }
+      },
+      {
+        "id": 6,
+        "title": "Data Freshness (Fixtures)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "goaldiggers_data_freshness_seconds{data_type=\"fixtures\"} / 60",
+            "legendFormat": "Age (minutes)"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 4,
+          "w": 12,
+          "h": 6
+        },
+        "yaxes": [
+          {
+            "format": "m",
+            "label": "Age"
+          },
+          {
+            "format": "short"
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

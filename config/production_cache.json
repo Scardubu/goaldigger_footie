@@ -1,0 +1,15 @@
+{
+  "redis_enabled": false,
+  "cache_ttl": {
+    "matches": 1800,
+    "predictions": 3600,
+    "team_stats": 7200,
+    "value_bets": 900,
+    "league_tables": 3600
+  },
+  "cache_prefetch": [
+    "upcoming_matches",
+    "high_confidence_predictions",
+    "top_value_bets"
+  ]
+}

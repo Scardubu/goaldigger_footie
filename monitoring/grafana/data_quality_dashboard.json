@@ -1,0 +1,198 @@
+{
+  "dashboard": {
+    "title": "GoalDiggers Data Quality Monitoring",
+    "tags": ["data-quality", "validation", "predictions"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Data Quality Score",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "goaldiggers_validation_quality_score{component=\"prediction_engine\"}",
+            "legendFormat": "Quality Score",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "alert": {
+          "name": "Low Data Quality",
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.5],
+                "type": "lt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "title": "Validation Pass Rate (5min)",
+        "type": "singlestat",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "rate(goaldiggers_validation_passed_total{component=\"prediction_engine\"}[5m]) / rate(goaldiggers_validation_checks_total{component=\"prediction_engine\"}[5m])",
+            "refId": "A"
+          }
+        ],
+        "format": "percentunit",
+        "valueName": "current",
+        "thresholds": "0.7,0.9",
+        "colors": ["#d44a3a", "#e0b400", "#299c46"]
+      },
+      {
+        "id": 3,
+        "title": "Blocked Predictions",
+        "type": "singlestat",
+        "gridPos": {
+          "x": 18,
+          "y": 0,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "increase(goaldiggers_validation_blocked_total{component=\"prediction_engine\"}[5m])",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "thresholds": "1,5",
+        "colors": ["#299c46", "#e0b400", "#d44a3a"]
+      },
+      {
+        "id": 4,
+        "title": "Feature Coverage",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "goaldiggers_validation_feature_coverage{feature_type=\"form\"}",
+            "legendFormat": "Form Data",
+            "refId": "A"
+          },
+          {
+            "expr": "goaldiggers_validation_feature_coverage{feature_type=\"h2h\"}",
+            "legendFormat": "Head-to-Head",
+            "refId": "B"
+          },
+          {
+            "expr": "goaldiggers_validation_feature_coverage{feature_type=\"standings\"}",
+            "legendFormat": "Standings",
+            "refId": "C"
+          },
+          {
+            "expr": "goaldiggers_validation_feature_coverage{feature_type=\"xg\"}",
+            "legendFormat": "Expected Goals",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Validation Failures by Reason",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(goaldiggers_validation_failed_total{component=\"prediction_engine\"}[5m])",
+            "legendFormat": "{{reason}}",
+            "refId": "A"
+          }
+        ],
+        "stack": true
+      },
+      {
+        "id": 6,
+        "title": "Blocking Issues Breakdown",
+        "type": "piechart",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum by (blocking_issue) (increase(goaldiggers_validation_blocked_total{component=\"prediction_engine\"}[1h]))",
+            "legendFormat": "{{blocking_issue}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Validation Check Rate",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(goaldiggers_validation_checks_total{component=\"prediction_engine\", result=\"passed\"}[5m])",
+            "legendFormat": "Passed",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(goaldiggers_validation_checks_total{component=\"prediction_engine\", result=\"failed\"}[5m])",
+            "legendFormat": "Failed",
+            "refId": "B"
+          }
+        ]
+      }
+    ]
+  }
+}

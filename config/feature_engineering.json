@@ -1,0 +1,7 @@
+{
+  "automated_feature_selection": true,
+  "feature_importance_tracking": true,
+  "cross_validation_enabled": true,
+  "feature_scaling": "standard",
+  "missing_value_strategy": "median"
+}

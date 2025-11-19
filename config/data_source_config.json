@@ -1,0 +1,140 @@
+{
+  "data_sources": {
+    "football_api": {
+      "enabled": true,
+      "type": "rest_api",
+      "base_url": "https://api.football-data.org/v4",
+      "api_key": "YOUR_API_KEY_HERE",
+      "endpoints": {
+        "competitions": "/competitions",
+        "matches": "/matches",
+        "teams": "/teams",
+        "standings": "/competitions/{competition_id}/standings"
+      },
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "max_daily_requests": 100
+      },
+      "cache_ttl": 3600,
+      "timeout": 30,
+      "retry_attempts": 3,
+      "headers": {
+        "X-Auth-Token": "YOUR_API_KEY_HERE"
+      }
+    },
+    "odds_api": {
+      "enabled": true,
+      "type": "rest_api",
+      "base_url": "https://api.the-odds-api.com/v4",
+      "api_key": "YOUR_API_KEY_HERE",
+      "endpoints": {
+        "sports": "/sports",
+        "odds": "/sports/{sport_key}/odds"
+      },
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "max_daily_requests": 500
+      },
+      "params": {
+        "apiKey": "YOUR_API_KEY_HERE",
+        "regions": "uk,eu",
+        "markets": "h2h,spreads,totals"
+      },
+      "cache_ttl": 1800,
+      "timeout": 30
+    },
+    "stats_provider": {
+      "enabled": true,
+      "type": "rest_api",
+      "base_url": "https://api.sportmonks.com/v3",
+      "api_key": "YOUR_API_KEY_HERE",
+      "endpoints": {
+        "fixtures": "/football/fixtures",
+        "teams": "/football/teams",
+        "players": "/football/players",
+        "leagues": "/football/leagues"
+      },
+      "rate_limit": {
+        "requests_per_minute": 20,
+        "max_daily_requests": 1000
+      },
+      "params": {
+        "api_token": "YOUR_API_KEY_HERE",
+        "include": "stats,events,lineups"
+      },
+      "cache_ttl": 3600,
+      "timeout": 30
+    },
+    "historical_data": {
+      "enabled": true,
+      "type": "file",
+      "path": "data/historical",
+      "format": "csv",
+      "files": {
+        "matches": "historical_matches.csv",
+        "teams": "historical_teams.csv",
+        "odds": "historical_odds.csv"
+      },
+      "update_frequency": "weekly"
+    },
+    "weather_api": {
+      "enabled": false,
+      "type": "rest_api",
+      "base_url": "https://api.weatherapi.com/v1",
+      "api_key": "YOUR_API_KEY_HERE",
+      "endpoints": {
+        "current": "/current.json",
+        "forecast": "/forecast.json"
+      },
+      "params": {
+        "key": "YOUR_API_KEY_HERE"
+      },
+      "cache_ttl": 1800,
+      "timeout": 10
+    }
+  },
+  "data_integration": {
+    "priority_order": ["football_api", "stats_provider", "odds_api", "historical_data", "weather_api"],
+    "fallback_strategy": "next_in_priority",
+    "merge_strategy": "most_recent",
+    "conflict_resolution": "override",
+    "validation": {
+      "enabled": true,
+      "schema_validation": true,
+      "type_checking": true
+    }
+  },
+  "monitoring": {
+    "check_interval_minutes": 15,
+    "alert_on_failure": true,
+    "consecutive_failures_threshold": 3,
+    "metrics": {
+      "log_request_times": true,
+      "track_success_rate": true
+    }
+  },
+  "failover": {
+    "enabled": true,
+    "auto_switch": true,
+    "retry_original_after_minutes": 30,
+    "notify_on_failover": true
+  },
+  "caching": {
+    "strategy": "two_level",
+    "memory": {
+      "enabled": true,
+      "max_items": 1000,
+      "ttl": 300
+    },
+    "disk": {
+      "enabled": true,
+      "path": "data/cache",
+      "max_size_mb": 500,
+      "ttl": 86400
+    },
+    "invalidation": {
+      "on_update": true,
+      "schedule": "0 3 * * *"
+    }
+  }
+}

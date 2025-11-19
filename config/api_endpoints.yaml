@@ -1,0 +1,153 @@
+# API Endpoints and Data Sources Configuration
+# Contains all data sources, their endpoints, and request settings
+
+# Global HTTP client settings
+http_client:
+  timeout: 30               # Default timeout in seconds
+  max_retries: 3            # Maximum number of retry attempts
+  backoff_factor: 0.5       # Exponential backoff factor
+  retry_statuses:           # HTTP status codes to retry
+    - 429                   # Too Many Requests
+    - 500                   # Internal Server Error
+    - 502                   # Bad Gateway
+    - 503                   # Service Unavailable
+    - 504                   # Gateway Timeout
+  verify_ssl: true          # Verify SSL certificates
+
+# Anti-scraping settings
+anti_scraping:
+  user_agents:              # List of user agents to rotate
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
+    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+  request_delay:            # Delay between requests
+    min: 1                  # Minimum delay in seconds
+    max: 3                  # Maximum delay in seconds
+  rotate_headers: true      # Rotate request headers
+  respect_robots_txt: true  # Respect robots.txt rules
+
+# Data sources configuration
+sources:
+  # Primary data sources (first choice)
+  primary:
+    - name: "Football-Data"
+      url: "https://api.football-data.org/v4/matches"
+      type: "json"
+      timeout: 20
+      max_retries: 3
+      endpoints:
+        matches: "/"
+        match_details: "/{id}"
+        competitions: "/competitions"
+        teams: "/teams"
+      
+    - name: "Understat"
+      url: "https://understat.com/match"
+      type: "html"
+      timeout: 30
+      max_retries: 5
+      use_playwright: true   # Use headless browser for dynamic content
+      anti_scraping_level: "high"
+      
+    - name: "API-Football"
+      url: "https://api-football-v1.p.rapidapi.com/v3"
+      type: "json"
+      requires_auth: true
+      timeout: 15
+      max_retries: 3
+      endpoints:
+        fixtures: "/fixtures"
+        odds: "/odds"
+        predictions: "/predictions"
+        statistics: "/statistics"
+      
+    - name: "SportsDataIO"
+      url: "https://api.sportsdata.io/v4/soccer/scores/json"
+      type: "json"
+      requires_auth: true
+      timeout: 20
+      max_retries: 2
+      endpoints:
+        matches: "/Scores/JSON"
+        standings: "/Standings/JSON"
+        
+    # Add FBref for detailed player stats (requires robust scraping)
+    - name: "FBref"
+      url: "https://fbref.com/en/matches"
+      type: "html"
+      timeout: 45
+      max_retries: 5
+      use_playwright: true
+      anti_scraping_level: "high"
+      delay_between_requests: 5
+      
+    # Added Transfermarkt - often needs dynamic scraping
+    - name: "Transfermarkt"
+      url: "https://www.transfermarkt.com"
+      type: "html"
+      timeout: 45
+      max_retries: 4
+      use_playwright: true
+      anti_scraping_level: "high"
+      delay_between_requests: 5
+
+  # Fallback data sources (used when primary fails)
+  fallback:
+    - name: "LiveScore"
+      url: "https://livescore-api.com/api-client/matches"
+      type: "json"
+      timeout: 15
+      max_retries: 2
+      
+    - name: "Sofascore"
+      url: "https://api.sofascore.com/api/v1/event"
+      type: "json"
+      timeout: 20
+      max_retries: 3
+      use_playwright: false
+
+  # Metadata sources for reference data
+  metadata:
+    - name: "SportsDataIO-Teams"
+      url: "https://api.sportsdata.io/v4/soccer/scores/json/Teams"
+      type: "json"
+      requires_auth: true
+      timeout: 30
+      max_retries: 2
+      cache_ttl: 86400  # Cache for 24 hours (in seconds)
+      
+    - name: "SportsDataIO-Leagues"
+      url: "https://api.sportsdata.io/v4/soccer/scores/json/Leagues"
+      type: "json"
+      requires_auth: true
+      timeout: 30
+      max_retries: 2
+      cache_ttl: 86400  # Cache for 24 hours (in seconds)
+
+# League mapping for standardization
+league_mapping:
+  "Premier League": 
+    id: "PL"
+    country: "England"
+    tier: 1
+  "La Liga":
+    id: "PD"
+    country: "Spain"
+    tier: 1
+  "Bundesliga":
+    id: "BL1"
+    country: "Germany"
+    tier: 1
+  "Serie A":
+    id: "SA"
+    country: "Italy"
+    tier: 1
+  "Ligue 1":
+    id: "FL1"
+    country: "France"
+    tier: 1
+  "Eredivisie":
+    id: "DED"
+    country: "Netherlands"
+    tier: 1

@@ -1,0 +1,7 @@
+{
+  "prediction_cache_ttl": 3600,
+  "model_cache_ttl": 7200,
+  "feature_cache_ttl": 1800,
+  "cache_size_limit": "100MB",
+  "cache_backend": "memory"
+}

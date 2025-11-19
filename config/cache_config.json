@@ -1,0 +1,6 @@
+{
+  "match_data_ttl": 3600,
+  "team_stats_ttl": 7200,
+  "predictions_ttl": 1800,
+  "odds_ttl": 300
+}

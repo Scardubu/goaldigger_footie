@@ -1,0 +1,7 @@
+{
+  "team_name_standardization": true,
+  "score_validation": true,
+  "date_format_consistency": true,
+  "odds_normalization": true,
+  "statistics_validation": true
+}

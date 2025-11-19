@@ -1,0 +1,17 @@
+{
+  "team_form_weight": 0.3,
+  "head_to_head_weight": 0.25,
+  "home_advantage_weight": 0.2,
+  "recent_performance_weight": 0.15,
+  "injury_impact_weight": 0.1,
+  "features": [
+    "team_form_last_5",
+    "goals_scored_avg",
+    "goals_conceded_avg",
+    "home_win_rate",
+    "away_win_rate",
+    "head_to_head_record",
+    "days_since_last_match",
+    "key_player_availability"
+  ]
+}

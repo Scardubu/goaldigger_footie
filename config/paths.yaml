@@ -1,0 +1,10 @@
+data:
+  raw: data/raw/
+  processed: data/processed/
+  # Path to the reference dataset for validation
+  reference:
+    matches: data/reference/valid_matches.csv
+  reference_data: data/reference/valid_matches.csv
+models: models/
+logs: logs/
+database: football.db # Default path for the DuckDB database file

@@ -1,0 +1,7 @@
+{
+  "live_scores_enabled": true,
+  "odds_updates_enabled": true,
+  "team_news_enabled": true,
+  "injury_updates_enabled": true,
+  "update_frequency_minutes": 5
+}

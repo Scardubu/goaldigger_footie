@@ -1,0 +1,1 @@
+"""Ingestion package for GoalDiggers platform."""

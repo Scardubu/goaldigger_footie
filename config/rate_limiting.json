@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "default_rate": 60,
+  "burst_allowance": 10,
+  "retry_delay": 1.0,
+  "max_retries": 3
+}

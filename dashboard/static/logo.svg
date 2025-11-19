@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" viewBox="0 0 150 150">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00796B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="75" cy="75" r="70" fill="url(#grad1)" />
+  <circle cx="75" cy="75" r="65" fill="white" stroke="url(#grad1)" stroke-width="5"/>
+  
+  <!-- Soccer ball pattern -->
+  <polygon points="75,25 95,45 115,35 105,65 120,85 90,90 75,115 60,90 30,85 45,65 35,35 55,45" 
+           fill="none" stroke="#333" stroke-width="1.5" />
+  
+  <!-- Hexagons for soccer ball -->
+  <circle cx="75" cy="55" r="10" fill="#333" />
+  <circle cx="100" cy="70" r="10" fill="#333" />
+  <circle cx="85" cy="95" r="10" fill="#333" />
+  <circle cx="55" cy="95" r="10" fill="#333" />
+  <circle cx="40" cy="70" r="10" fill="#333" />
+  <circle cx="60" cy="45" r="10" fill="#333" />
+  
+  <!-- Text -->
+  <text x="75" y="75" font-family="Arial, sans-serif" font-size="22" font-weight="bold" 
+        text-anchor="middle" fill="#4CAF50" dy="3">FootieAI</text>
+</svg>

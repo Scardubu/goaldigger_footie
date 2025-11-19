@@ -1,0 +1,120 @@
+dashboard:
+  # General settings
+  title: "Football Match Predictions Dashboard"
+  theme:
+    primary_color: "#1f77b4"
+    secondary_color: "#ff7f0e"
+    background_color: "#ffffff"
+    text_color: "#2c3e50"
+    font_family: "Arial, sans-serif"
+
+  # Layout settings
+  layout:
+    sidebar_width: 300
+    main_content_width: 1200
+    chart_height: 600
+    table_height: 400
+
+  # Data refresh settings
+  refresh:
+    interval_seconds: 300  # 5 minutes
+    cache_ttl: 300  # 5 minutes
+    max_retries: 3
+    retry_delay: 5
+
+  # Visualization settings
+  visualizations:
+    match_prediction:
+      show_odds_comparison: true
+      show_xg: true
+      show_form: true
+      show_value_bets: true
+      min_value_threshold: 0.05  # 5% edge required to show value bet
+
+    team_performance:
+      time_ranges:
+        - name: "Last 5"
+          value: "last_5"
+        - name: "Last 10"
+          value: "last_10"
+        - name: "Season"
+          value: "season"
+      metrics:
+        - name: "Goals per Game"
+          key: "goals_per_game"
+        - name: "Expected Goals"
+          key: "xg_per_game"
+        - name: "Win Rate"
+          key: "win_rate"
+        - name: "Clean Sheets"
+          key: "clean_sheets"
+
+    league_standings:
+      highlight_selected_teams: true
+      show_performance_metrics: true
+      performance_metrics:
+        - name: "Goals/Game"
+          key: "goals_per_game"
+        - name: "xG/Game"
+          key: "xg_per_game"
+        - name: "Win Rate"
+          key: "win_rate"
+        - name: "Clean Sheets"
+          key: "clean_sheets"
+
+  # AI Analysis settings
+  ai_analysis:
+    enabled: true
+    provider: "openai"  # or "gemini", "deepseek"
+    model: "gpt-4"  # or model ID for other providers
+    max_tokens: 500
+    temperature: 0.7
+    analysis_aspects:
+      - name: "Match Overview"
+        key: "overview"
+      - name: "Team Form"
+        key: "form"
+      - name: "Key Factors"
+        key: "factors"
+      - name: "Prediction Confidence"
+        key: "confidence"
+
+  # Error handling
+  error_handling:
+    show_error_details: true
+    max_error_display: 5
+    error_retention_days: 7
+    notification:
+      enabled: true
+      channels:
+        - type: "email"
+          recipients: []
+        - type: "slack"
+          webhook_url: ""
+
+  # Performance monitoring
+  monitoring:
+    enabled: true
+    metrics:
+      - name: "Cache Hit Rate"
+        key: "cache_hit_rate"
+      - name: "Data Load Time"
+        key: "data_load_time"
+      - name: "Render Time"
+        key: "render_time"
+    alerts:
+      cache_hit_rate_threshold: 0.8
+      data_load_time_threshold: 2.0  # seconds
+      render_time_threshold: 1.0  # seconds
+
+  # Security settings
+  security:
+    rate_limit:
+      enabled: true
+      requests_per_minute: 60
+    authentication:
+      required: false
+      method: "none"  # "none", "basic", "oauth"
+    data_encryption:
+      enabled: false
+      algorithm: "aes-256-gcm" 

@@ -1,0 +1,52 @@
+{
+  "complexity_levels": {
+    "beginner": {
+      "visible_features": [
+        "basic_predictions",
+        "team_selection",
+        "simple_insights"
+      ],
+      "hidden_features": [
+        "advanced_analytics",
+        "cross_league",
+        "api_access"
+      ],
+      "max_options": 3
+    },
+    "intermediate": {
+      "visible_features": [
+        "basic_predictions",
+        "team_selection",
+        "simple_insights",
+        "cross_league",
+        "betting_insights"
+      ],
+      "hidden_features": [
+        "advanced_analytics",
+        "api_access",
+        "custom_models"
+      ],
+      "max_options": 5
+    },
+    "advanced": {
+      "visible_features": [
+        "all"
+      ],
+      "hidden_features": [],
+      "max_options": 10
+    }
+  },
+  "progressive_features": {
+    "dashboard_complexity": true,
+    "feature_unlocking": true,
+    "contextual_help": true,
+    "guided_tours": true,
+    "smart_defaults": true
+  },
+  "onboarding_flow": {
+    "step_by_step": true,
+    "interactive_tutorial": true,
+    "progress_tracking": true,
+    "skip_options": true
+  }
+}

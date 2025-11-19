@@ -1,0 +1,36 @@
+{
+  "match_data": {
+    "required_fields": [
+      "home_team_id",
+      "away_team_id",
+      "match_date"
+    ],
+    "validation_checks": [
+      "team_exists",
+      "date_future",
+      "no_duplicate_matches"
+    ]
+  },
+  "team_data": {
+    "required_fields": [
+      "name",
+      "league_id"
+    ],
+    "validation_checks": [
+      "unique_name_per_league",
+      "valid_league"
+    ]
+  },
+  "prediction_data": {
+    "required_fields": [
+      "match_id",
+      "home_win_prob",
+      "draw_prob",
+      "away_win_prob"
+    ],
+    "validation_checks": [
+      "probabilities_sum_to_one",
+      "valid_confidence_range"
+    ]
+  }
+}

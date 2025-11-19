@@ -1,0 +1,20 @@
+{
+  "ensemble_weights": {
+    "team_strength": 0.4,
+    "recent_form": 0.3,
+    "historical_h2h": 0.2,
+    "venue_advantage": 0.1
+  },
+  "confidence_thresholds": {
+    "high": 0.7,
+    "medium": 0.55,
+    "low": 0.4
+  },
+  "feature_importance": {
+    "goals_scored_avg": 0.25,
+    "goals_conceded_avg": 0.25,
+    "recent_wins": 0.2,
+    "home_advantage": 0.15,
+    "head_to_head": 0.15
+  }
+}

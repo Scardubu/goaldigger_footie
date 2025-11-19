@@ -1,0 +1,331 @@
+/* GoalDiggers Unified Production Styling 
+   Enhanced aesthetics for production environment with mobile compatibility 
+   Version: 19.0 - August 9, 2025
+*/
+
+/* Base styling variables */
+:root {
+    --gd-primary: #1e3a8a;
+    --gd-secondary: #3b82f6;
+    --gd-success: #10b981;
+    --gd-warning: #f59e0b;
+    --gd-error: #ef4444;
+    --gd-bg: #f8fafc;
+    --gd-surface: #ffffff;
+    --gd-text: #0f172a;
+    --gd-text-secondary: #64748b;
+    
+    --gd-border-radius: 8px;
+    --gd-shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --gd-shadow: 0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.1);
+    --gd-shadow-lg: 0 10px 15px rgba(0,0,0,0.07), 0 4px 6px rgba(0,0,0,0.05);
+    
+    --gd-transition: all 0.2s ease-in-out;
+    --gd-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Core layout and typography */
+.unified-container {
+    font-family: var(--gd-font-family);
+    color: var(--gd-text);
+    background-color: var(--gd-bg);
+    line-height: 1.5;
+}
+
+.unified-header {
+    background: linear-gradient(135deg, var(--gd-primary) 0%, var(--gd-secondary) 100%);
+    color: white;
+    padding: 2rem 1.5rem;
+    border-radius: var(--gd-border-radius);
+    margin-bottom: 1.5rem;
+    box-shadow: var(--gd-shadow);
+}
+
+.unified-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+}
+
+.unified-header p {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Card components */
+.unified-card {
+    background-color: var(--gd-surface);
+    border-radius: var(--gd-border-radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--gd-shadow);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: var(--gd-transition);
+}
+
+.unified-card:hover {
+    box-shadow: var(--gd-shadow-lg);
+    transform: translateY(-2px);
+}
+
+.unified-card h3 {
+    margin-top: 0;
+    color: var(--gd-primary);
+    font-weight: 600;
+}
+
+/* Status indicators */
+.unified-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+.unified-status-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+}
+
+.unified-status-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #92400e;
+}
+
+.unified-status-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+.unified-status-info {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #1e40af;
+}
+
+/* Button styles */
+.unified-button {
+    background: linear-gradient(135deg, var(--gd-primary) 0%, var(--gd-secondary) 100%);
+    color: white;
+    border: none;
+    border-radius: var(--gd-border-radius);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--gd-transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.unified-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--gd-shadow);
+}
+
+.unified-button-success {
+    background: linear-gradient(135deg, var(--gd-success) 0%, #059669 100%);
+}
+
+.unified-button-warning {
+    background: linear-gradient(135deg, var(--gd-warning) 0%, #d97706 100%);
+}
+
+/* Enhanced prediction results */
+.unified-prediction-results {
+    background: linear-gradient(to right, #f8fafc, #f1f5f9);
+    border-radius: var(--gd-border-radius);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-left: 4px solid var(--gd-primary);
+}
+
+.unified-prediction-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--gd-primary);
+}
+
+.unified-prediction-label {
+    color: var(--gd-text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Team selector */
+.unified-team-selector {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.unified-team-badge {
+    width: 64px;
+    height: 64px;
+    background-color: #f1f5f9;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--gd-shadow-sm);
+}
+
+.unified-team-name {
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.unified-vs-indicator {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--gd-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    box-shadow: var(--gd-shadow);
+}
+
+/* Metrics grid */
+.unified-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.unified-metric {
+    background-color: var(--gd-surface);
+    border-radius: var(--gd-border-radius);
+    padding: 1.25rem;
+    box-shadow: var(--gd-shadow-sm);
+    text-align: center;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.unified-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gd-primary);
+}
+
+.unified-metric-label {
+    color: var(--gd-text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+}
+
+/* Footer */
+.unified-footer {
+    margin-top: 3rem;
+    padding: 2rem 0;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    text-align: center;
+    color: var(--gd-text-secondary);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .unified-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .unified-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .unified-card {
+        padding: 1.25rem;
+    }
+    
+    .unified-metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    
+    .unified-team-selector {
+        grid-template-columns: 1fr auto 1fr;
+    }
+    
+    .unified-team-badge {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .unified-team-name {
+        font-size: 0.875rem;
+    }
+    
+    .unified-vs-indicator {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.unified-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Progressive enhancement classes */
+.unified-animate-when-visible {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s, transform 0.6s;
+}
+
+.unified-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Hide Streamlit elements for cleaner UI */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+.stDeployButton { display: none; }
+
+/* Fix for Streamlit widgets to match design system */
+.stSelectbox > div > div {
+    border-radius: var(--gd-border-radius) !important;
+}
+
+.stButton > button {
+    border-radius: var(--gd-border-radius) !important;
+    font-family: var(--gd-font-family) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --gd-bg: #0f172a;
+        --gd-surface: #1e293b;
+        --gd-text: #f8fafc;
+        --gd-text-secondary: #cbd5e1;
+    }
+    
+    .unified-card {
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .unified-prediction-results {
+        background: linear-gradient(to right, #1e293b, #0f172a);
+    }
+    
+    .unified-metric {
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+}

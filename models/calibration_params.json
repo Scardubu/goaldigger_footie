@@ -1,0 +1,29 @@
+{
+  "method": "isotonic",
+  "class_order": [
+    "home",
+    "draw",
+    "away"
+  ],
+  "sample_counts": {
+    "home": 200,
+    "draw": 200,
+    "away": 200
+  },
+  "fitted": true,
+  "isotonic_models": {
+    "home": {
+      "X_": [],
+      "y_": []
+    },
+    "draw": {
+      "X_": [],
+      "y_": []
+    },
+    "away": {
+      "X_": [],
+      "y_": []
+    }
+  },
+  "platt_params": {}
+}

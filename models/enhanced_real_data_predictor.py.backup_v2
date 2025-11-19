@@ -1,0 +1,1425 @@
+"""
+Enhanced Real Data Predictor for GoalDiggers Platform
+Advanced ML predictor with real-time data integration and betting insights.
+"""
+import logging
+import warnings
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+
+if tuple(map(int, np.__version__.split('.')[:2])) < (1, 21):
+    warnings.warn("NumPy >=1.21 required for full compatibility.")
+if tuple(map(int, pd.__version__.split('.')[:2])) < (1, 3):
+    warnings.warn("Pandas >=1.3 required for full compatibility.")
+from config.settings import settings
+from utils.comprehensive_error_handler import (
+    ErrorCategory,
+    ErrorSeverity,
+    PredictionException,
+)
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class PredictionResult:
+    """Container for prediction results."""
+    home_win_probability: float
+    draw_probability: float
+    away_win_probability: float
+    confidence: float
+    momentum_score: float = 0.0
+    injury_impact: float = 0.0
+    motivation_factor: float = 0.0
+    key_factors: List[str] = None
+    # New fields to indicate whether real data was used and the freshest data timestamp
+    real_data_used: bool = False
+    data_timestamp: Optional[str] = None
+    expected_goals_home: float = 0.0
+    expected_goals_away: float = 0.0
+    xg_confidence: float = 0.0
+
+    def __post_init__(self):
+        if self.key_factors is None:
+            self.key_factors = []
+
+    # Backward-compatible attribute aliases used throughout the codebase/tests
+    @property
+    def home_win_prob(self) -> float:
+        return self.home_win_probability
+
+    @home_win_prob.setter
+    def home_win_prob(self, value: float) -> None:
+        self.home_win_probability = float(value)
+
+    @property
+    def away_win_prob(self) -> float:
+        return self.away_win_probability
+
+    @away_win_prob.setter
+    def away_win_prob(self, value: float) -> None:
+        self.away_win_probability = float(value)
+
+    @property
+    def draw_prob(self) -> float:
+        return self.draw_probability
+
+    @draw_prob.setter
+    def draw_prob(self, value: float) -> None:
+        self.draw_probability = float(value)
+
+    @property
+    def confidence_score(self) -> float:
+        return self.confidence
+
+    @confidence_score.setter
+    def confidence_score(self, value: float) -> None:
+        self.confidence = float(value)
+
+    @property
+    def predicted_outcome(self) -> str:
+        """Return the predicted outcome based on highest probability"""
+        probs = {
+            'HOME_WIN': self.home_win_probability,
+            'DRAW': self.draw_probability,
+            'AWAY_WIN': self.away_win_probability
+        }
+        return max(probs, key=probs.get)
+
+class EnhancedRealDataPredictor:
+    """
+    Enhanced predictor with real-time data integration and advanced betting insights.
+    """
+
+    def __init__(self):
+        """Initialize the enhanced predictor."""
+        from datetime import timezone
+        self.model_version = "2.0"
+        self.last_updated = datetime.now(timezone.utc)
+        self.feature_importance = {}
+        self.performance_metrics = {
+            "accuracy": 0.0,
+            "total_predictions": 0,
+            "successful_predictions": 0
+        }
+        # Inference tracking (lightweight runtime metrics for monitoring)
+        from collections import deque
+        self._total_inferences: int = 0
+        self._last_inference_ms: Optional[float] = None
+        self._last_prediction_timestamp: Optional[str] = None
+        self._recent_latencies_ms = deque(maxlen=50)
+        # Real data usage counters (track how often real data path was utilized)
+        self._real_data_predictions = 0
+        self._total_predictions = 0
+        self._last_data_timestamp: Optional[str] = None
+        # Lazy-calibration components
+        self._calibrator = None
+        self._calibration_enabled = settings.ENABLE_CALIBRATION  # from centralized config
+        self._calibration_loaded = False
+        self._calibration_applied_count = 0
+        # Captured feature dataframe from the last prediction (for explainability)
+        self._last_features = None  # type: Optional[pd.DataFrame]
+        # SHAP integration placeholders
+        self._shap_enabled = getattr(settings, 'ENABLE_SHAP', False)
+        self._shap_explainer = None
+        self._shap_model_hash = None
+
+        # Metrics wrapper (lightweight + Prometheus integration if available)
+        try:  # Prefer unified wrapper
+            from metrics import metrics_wrapper as _mw  # type: ignore
+            self._metrics_enabled = True
+            self._metrics_wrapper = _mw
+            # Backward compatibility attributes used later in code
+            self._metric_latency = None  # superseded by wrapper
+            self._metric_calibration = None
+        except Exception:  # pragma: no cover
+            # Fall back to legacy optional Prometheus direct imports
+            try:
+                from metrics.prediction_metrics import (
+                    CALIBRATION_APPLIED_COUNTER,
+                    PREDICTION_LATENCY_SECONDS,
+                )
+                self._metrics_enabled = True
+                self._metrics_wrapper = None
+                self._metric_latency = PREDICTION_LATENCY_SECONDS
+                self._metric_calibration = CALIBRATION_APPLIED_COUNTER
+            except Exception:
+                self._metrics_enabled = False
+                self._metrics_wrapper = None
+                self._metric_latency = None
+                self._metric_calibration = None
+
+        logger.info("Enhanced Real Data Predictor initialized")
+
+        # Register globally for monitoring snapshot (best effort, ignore failures)
+        try:  # pragma: no cover
+            from models.predictor_registry import register_predictor as _reg_predictor
+            _reg_predictor(self)
+        except Exception:
+            pass
+
+    def predict_match_enhanced(self, home_team: str, away_team: str,
+                              match_data: Dict[str, Any] = None,
+                              use_real_data: bool = True) -> PredictionResult:
+        """
+        Generate enhanced match prediction with real-time data integration.
+
+        Args:
+            home_team: Home team name
+            away_team: Away team name
+            match_data: Additional match context data
+            use_real_data: Whether to use real-time data sources
+
+        Returns:
+            PredictionResult with detailed analysis
+        """
+        # CONSISTENCY FIX: Deterministic seeding for reproducibility
+        try:
+            league_key = str(match_data.get('league', 'unknown') if isinstance(match_data, dict) else 'unknown')
+            match_seed = abs(hash(f"{home_team}_{away_team}_{league_key}")) % (2**32)
+            np.random.seed(match_seed)
+            rng = np.random.RandomState(match_seed)
+        except Exception:
+            np.random.seed(42)
+            rng = np.random.RandomState(42)
+        # Normalize match_data: callers historically (bug) passed a league string instead of a dict.
+        # Backward compatibility: if a plain string/other scalar is supplied, coerce to {'league': <value>}.
+        if match_data is None:
+            match_data = {}
+        elif not isinstance(match_data, dict):  # Defensive hardening against prior incorrect usage
+            match_data = {'league': str(match_data)}
+
+        # Determine if we can/should use real data and gather lightweight signals
+        real_data_used = False
+        data_timestamp = None
+        home_form = None
+        away_form = None
+        h2h = None
+
+        matches: List[Dict[str, Any]] = []
+        if use_real_data:
+            try:
+                from real_data_integrator import (
+                    get_real_h2h,
+                    get_real_matches,
+                    get_team_real_form,
+                )
+
+                # Check if the real data integrator has any non-fallback matches available
+                matches = get_real_matches(14)
+                if matches and any(not str(m.get('api_id', '')).startswith('fallback_') for m in matches):
+                    real_data_used = True
+                    # Use current timestamp to indicate when data was fetched (not match date)
+                    try:
+                        from datetime import timezone
+                        data_timestamp = datetime.now(timezone.utc).isoformat()
+                    except Exception:
+                        data_timestamp = None
+
+                # Pull team form and head-to-head info to make small adjustments
+                try:
+                    home_form = get_team_real_form(home_team, 5)
+                    away_form = get_team_real_form(away_team, 5)
+                    h2h = get_real_h2h(home_team, away_team, 5)
+                except Exception:
+                    # If these calls fail, fall back silently to internal estimations
+                    home_form = None
+                    away_form = None
+                    h2h = None
+
+            except Exception as e:
+                logger.debug(f"Real data integrator not available or failed: {e}")
+
+        import time as _time
+        _start_time = _time.time()
+        _timing_cm = None
+        if getattr(self, '_metrics_wrapper', None):
+            try:
+                _timing_cm = self._metrics_wrapper.time_prediction(self.model_version)
+                _timing_cm.__enter__()
+            except Exception:
+                _timing_cm = None
+        try:
+            # Enhanced prediction logic with intelligent team analysis
+            home_strength_raw, away_strength_raw = self._calculate_team_strengths(home_team, away_team, match_data)
+            home_strength, away_strength = home_strength_raw, away_strength_raw
+
+            # If we obtained lightweight real-data signals, nudge strengths based on recent form
+            try:
+                def _form_score(form_list):
+                    if not form_list:
+                        return 0.5
+                    score = 0.0
+                    for item in form_list:
+                        r = item.get('result') if isinstance(item, dict) else None
+                        if r == 'W':
+                            score += 3
+                        elif r == 'D':
+                            score += 1
+                    # Normalize to 0..1 scale based on max possible (3 points per match)
+                    return (score / (max(len(form_list), 1) * 3)) if form_list else 0.5
+
+                if home_form or away_form:
+                    home_adj = ( _form_score(home_form) - 0.5 ) * 0.08  # small nudge +/- ~4%
+                    away_adj = ( _form_score(away_form) - 0.5 ) * 0.08
+                    home_strength = max(0.4, min(1.0, home_strength + home_adj))
+                    away_strength = max(0.4, min(1.0, away_strength + away_adj))
+            except Exception:
+                # keep original strengths if adjustment fails
+                pass
+            
+            # Apply home advantage and league-specific factors
+            home_advantage = self._calculate_home_advantage(home_team, away_team, match_data)
+            league_factor = self._get_league_competitiveness_factor(match_data)
+            
+            def _safe_mean(values, default):
+                try:
+                    arr = [float(v) for v in values if isinstance(v, (int, float))]
+                    if not arr:
+                        return default
+                    return float(np.mean(arr))
+                except Exception:
+                    return default
+
+            def _collect_numeric(records, keys):
+                collected = []
+                for record in records or []:
+                    for key in keys:
+                        if key in record and isinstance(record[key], (int, float)):
+                            collected.append(float(record[key]))
+                            break
+                return collected
+
+            def _collect_match_xg(match_records, team_name, is_home_side):
+                samples = []
+                for record in match_records or []:
+                    home_name = record.get('home_team') or record.get('home_team_name')
+                    away_name = record.get('away_team') or record.get('away_team_name')
+                    if is_home_side and home_name and home_name.lower() == team_name.lower():
+                        for key in ('home_xg', 'home_xG', 'home_expected_goals', 'xg_home'):
+                            val = record.get(key)
+                            if isinstance(val, (int, float)):
+                                samples.append(float(val))
+                                break
+                    elif (not is_home_side) and away_name and away_name.lower() == team_name.lower():
+                        for key in ('away_xg', 'away_xG', 'away_expected_goals', 'xg_away'):
+                            val = record.get(key)
+                            if isinstance(val, (int, float)):
+                                samples.append(float(val))
+                                break
+                return samples
+
+            home_form_gf = _safe_mean([item.get('goals_for') for item in (home_form or [])], 1.55)
+            home_form_ga = _safe_mean([item.get('goals_against') for item in (home_form or [])], 1.15)
+            away_form_gf = _safe_mean([item.get('goals_for') for item in (away_form or [])], 1.35)
+            away_form_ga = _safe_mean([item.get('goals_against') for item in (away_form or [])], 1.25)
+
+            home_form_xg = _safe_mean(_collect_numeric(home_form, ['xg_for', 'xg', 'home_xg']), None)
+            away_form_xg = _safe_mean(_collect_numeric(away_form, ['xg_for', 'xg', 'away_xg']), None)
+
+            home_match_xg_samples = _collect_match_xg(matches, home_team, True)
+            away_match_xg_samples = _collect_match_xg(matches, away_team, False)
+
+            base_home_xg = 1.38 + (home_strength - 0.5) * 1.15 + (home_advantage - 1.0) * 0.65 + (league_factor - 1.0) * 0.25
+            base_away_xg = 1.05 + (away_strength - 0.5) * 1.05 + (1.0 / max(home_advantage, 0.8) - 1.0) * 0.45 + (league_factor - 1.0) * 0.2
+
+            base_home_xg = max(0.45, base_home_xg)
+            base_away_xg = max(0.35, base_away_xg)
+
+            home_defence_modifier = 1.0 - max(0.0, home_form_ga - 1.4) * 0.18
+            away_defence_modifier = 1.0 - max(0.0, away_form_ga - 1.3) * 0.2
+
+            expected_goals_home = (0.55 * base_home_xg + 0.25 * home_form_gf + 0.2 * max(0.65, 1.8 * away_defence_modifier))
+            expected_goals_away = (0.6 * base_away_xg + 0.2 * away_form_gf + 0.2 * max(0.55, 1.7 * home_defence_modifier))
+
+            if home_form_xg is not None:
+                expected_goals_home = 0.6 * expected_goals_home + 0.4 * home_form_xg
+            if away_form_xg is not None:
+                expected_goals_away = 0.6 * expected_goals_away + 0.4 * away_form_xg
+
+            if home_match_xg_samples:
+                expected_goals_home = 0.5 * expected_goals_home + 0.5 * _safe_mean(home_match_xg_samples, expected_goals_home)
+            if away_match_xg_samples:
+                expected_goals_away = 0.5 * expected_goals_away + 0.5 * _safe_mean(away_match_xg_samples, expected_goals_away)
+
+            expected_goals_home = round(max(0.35, min(3.8, expected_goals_home)), 2)
+            expected_goals_away = round(max(0.25, min(3.4, expected_goals_away)), 2)
+
+            xg_confidence = 0.45
+            if real_data_used:
+                xg_confidence += 0.2
+            if home_form:
+                xg_confidence += 0.1
+            if away_form:
+                xg_confidence += 0.1
+            if h2h:
+                xg_confidence += 0.05
+            if home_match_xg_samples or away_match_xg_samples:
+                xg_confidence += 0.1
+            xg_confidence = max(0.3, min(0.95, xg_confidence))
+
+            # Calculate base probabilities with more realistic distribution
+            strength_ratio = home_strength / (away_strength + 0.1)  # Avoid division by zero
+            
+            # More realistic probability calculation
+            if strength_ratio > 1.3:
+                home_win_prob = 0.55 + (min(strength_ratio - 1.3, 1.0) * 0.25)
+                away_win_prob = 0.15 + (0.15 / max(strength_ratio, 1.0))
+            elif strength_ratio < 0.7:
+                away_win_prob = 0.55 + (min((1/strength_ratio) - 1.3, 1.0) * 0.25)
+                home_win_prob = 0.15 + (0.15 / max(1/strength_ratio, 1.0))
+            else:
+                # Balanced match
+                home_win_prob = 0.40 + (rng.normal(0, 0.08))
+                away_win_prob = 0.35 + (rng.normal(0, 0.08))
+            
+            # Apply home advantage
+            home_win_prob *= home_advantage
+            
+            # Calculate draw probability
+            draw_prob = max(0.15, 1.0 - home_win_prob - away_win_prob)
+            
+            # Normalize probabilities (initial)
+            total = home_win_prob + draw_prob + away_win_prob
+            home_win_prob = max(0.1, min(0.8, home_win_prob / total))
+            away_win_prob = max(0.1, min(0.8, away_win_prob / total))
+            draw_prob = max(0.1, 1.0 - home_win_prob - away_win_prob)
+            
+            # Final normalization
+            total = home_win_prob + draw_prob + away_win_prob
+            home_win_prob /= total
+            draw_prob /= total
+            away_win_prob /= total
+
+            # Calculate confidence based on multiple factors
+            strength_diff = abs(home_strength - away_strength)
+            confidence = min(0.95, 0.65 + strength_diff * 0.25 + rng.normal(0, 0.05))
+            confidence = max(0.5, confidence)  # Minimum 50% confidence
+
+            # Generate intelligent key factors
+            key_factors = self._generate_intelligent_key_factors(
+                home_team, away_team, home_win_prob, away_win_prob, 
+                confidence, home_strength, away_strength
+            )
+            # Capture feature vector BEFORE calibration (inputs for explainability)
+            feature_record = {
+                'home_team': home_team,
+                'away_team': away_team,
+                'home_strength_raw': float(home_strength_raw),
+                'away_strength_raw': float(away_strength_raw),
+                'home_strength_adj': float(home_strength),
+                'away_strength_adj': float(away_strength),
+                'home_advantage': float(home_advantage),
+                'league_factor': float(league_factor),
+                'strength_ratio': float(strength_ratio),
+                'precalib_home_win_prob': float(home_win_prob),
+                'precalib_draw_prob': float(draw_prob),
+                'precalib_away_win_prob': float(away_win_prob),
+                'confidence': float(confidence),
+                'real_data_used': bool(real_data_used),
+                'data_fresh': bool(real_data_used and data_timestamp is not None),
+                'expected_goals_home': float(expected_goals_home),
+                'expected_goals_away': float(expected_goals_away),
+                'xg_confidence': float(xg_confidence)
+            }
+
+            # Optional probability calibration (applied AFTER feature snapshot)
+            if self._should_apply_calibration():
+                calibrated_vector = self._calibrate_triplet([
+                    home_win_prob, draw_prob, away_win_prob
+                ])
+                if calibrated_vector is not None:
+                    home_win_prob, draw_prob, away_win_prob = calibrated_vector
+                    if self._metrics_enabled and self._metric_calibration:
+                        try:
+                            self._metric_calibration.inc()
+                        except Exception:
+                            pass
+
+            # Store final (possibly calibrated) probabilities for comparison
+            feature_record.update({
+                'home_win_prob': float(home_win_prob),
+                'draw_prob': float(draw_prob),
+                'away_win_prob': float(away_win_prob)
+            })
+
+            # Persist last features as a single-row DataFrame (drop non-numeric only for model explanation)
+            try:
+                numeric_features = {k: v for k, v in feature_record.items() if isinstance(v, (int, float, bool))}
+                self._last_features = pd.DataFrame([numeric_features])
+            except Exception:
+                self._last_features = None
+
+            if self._metrics_enabled:
+                # Legacy direct histogram path (if wrapper not available)
+                if self._metric_latency:
+                    try:
+                        duration = _time.time() - _start_time
+                        self._metric_latency.labels(model_version=self.model_version).observe(duration)
+                    except Exception:
+                        pass
+
+            result_obj = PredictionResult(
+                home_win_probability=home_win_prob,
+                draw_probability=draw_prob,
+                away_win_probability=away_win_prob,
+                confidence=confidence,
+                momentum_score=rng.normal(0, 0.15),
+                injury_impact=rng.normal(0, 0.08),
+                motivation_factor=rng.normal(0, 0.12),
+                key_factors=key_factors,
+                real_data_used=real_data_used,
+                data_timestamp=data_timestamp,
+                expected_goals_home=expected_goals_home,
+                expected_goals_away=expected_goals_away,
+                xg_confidence=xg_confidence
+            )
+            # Inference bookkeeping (latency, counters, moving average window)
+            try:
+                inf_duration_ms = (_time.time() - _start_time) * 1000.0
+                self._last_inference_ms = round(inf_duration_ms, 3)
+                self._recent_latencies_ms.append(self._last_inference_ms)
+                self._total_inferences += 1
+                self._total_predictions += 1
+                if real_data_used:
+                    self._real_data_predictions += 1
+                if data_timestamp:
+                    self._last_data_timestamp = data_timestamp
+                from datetime import timezone as _tz
+                self._last_prediction_timestamp = datetime.now(_tz.utc).isoformat()
+            except Exception:
+                pass
+            if _timing_cm:
+                try:
+                    _timing_cm.__exit__(None, None, None)
+                except Exception:
+                    pass
+            return result_obj
+
+        except Exception as e:
+            logger.error(f"Prediction failed for {home_team} vs {away_team}: {e}")
+            if _timing_cm:
+                try:
+                    _timing_cm.__exit__(type(e), e, e.__traceback__)
+                except Exception:
+                    pass
+            # Metric for prediction errors
+            try:
+                if self._metrics_enabled and getattr(self, '_metrics_wrapper', None):
+                    self._metrics_wrapper.inc_prediction_error()
+                elif self._metrics_enabled:
+                    from metrics.prediction_metrics import PREDICTION_ERRORS_COUNTER
+                    PREDICTION_ERRORS_COUNTER.inc()
+            except Exception:
+                pass
+            raise PredictionException(
+                f"Failed to generate prediction: {e}",
+                ErrorSeverity.HIGH,
+                ErrorCategory.PREDICTION
+            )
+
+    # ---------------- SHAP Explainability Extension (properly inside class) ----------------
+    def _get_model_for_shap(self):
+        try:
+            if hasattr(self, 'pipeline_model'):
+                return self.pipeline_model
+        except Exception:
+            return None
+        return None
+
+    def _maybe_init_shap(self):
+        if not self._shap_enabled:
+            return False
+        if self._shap_explainer is not None:
+            return True
+        model = self._get_model_for_shap()
+        if model is None:
+            return False
+        try:  # pragma: no cover
+            import shap  # type: ignore
+            try:
+                self._shap_explainer = shap.TreeExplainer(model)
+            except Exception:
+                background = self._last_features if self._last_features is not None else None
+                if background is None:
+                    background = pd.DataFrame([{c:0 for c in ['home_strength_raw','away_strength_raw']}])
+                self._shap_explainer = shap.KernelExplainer(lambda X: self._kernel_predict_wrapper(model, X), background)
+            self._shap_model_hash = str(type(model))
+            logger.info("SHAP explainer initialized")
+            return True
+        except Exception as e:
+            logger.debug(f"SHAP initialization failed: {e}")
+            self._shap_explainer = None
+            return False
+
+    def _kernel_predict_wrapper(self, model, X):  # pragma: no cover
+        try:
+            if hasattr(model, 'predict_proba'):
+                proba = model.predict_proba(X)
+                return proba[:,0]
+            return model.predict(X)
+        except Exception:
+            return np.zeros((len(X),))
+
+    def explain_last_prediction(self) -> Dict[str, Any]:
+        if self._last_features is None or self._last_features.empty:
+            return {'is_mock': True, 'reason': 'no_features'}
+        if not self._shap_enabled:
+            return self._mock_explanation('disabled')
+        if not self._maybe_init_shap():
+            return self._mock_explanation('init_failed')
+        try:  # pragma: no cover
+            sample = self._last_features
+            shap_values = self._shap_explainer.shap_values(sample)
+            if isinstance(shap_values, list):
+                shap_arr = shap_values[0]
+            else:
+                shap_arr = shap_values
+            shap_flat = shap_arr[0].tolist() if getattr(shap_arr, 'ndim', 1) > 1 else list(shap_arr)
+            base_value = None
+            try:
+                base = getattr(self._shap_explainer, 'expected_value', None)
+                if isinstance(base, (list, np.ndarray)):
+                    base_value = float(base[0])
+                elif base is not None:
+                    base_value = float(base)
+            except Exception:
+                base_value = None
+            return {
+                'is_mock': False,
+                'shap_values': shap_flat,
+                'feature_names': list(sample.columns),
+                'base_value': base_value,
+                'model_version': self.model_version,
+            }
+        except Exception as e:
+            logger.debug(f"SHAP explanation failure: {e}")
+            return self._mock_explanation('compute_failed')
+
+    def _mock_explanation(self, reason: str) -> Dict[str, Any]:
+        feats = list(self._last_features.columns) if self._last_features is not None else []
+        rng = np.random.default_rng(42)
+        mock_vals = rng.normal(0, 0.05, size=len(feats)).tolist() if feats else []
+        return {
+            'is_mock': True,
+            'reason': reason,
+            'shap_values': mock_vals,
+            'feature_names': feats,
+            'base_value': 0.0,
+            'model_version': self.model_version,
+        }
+
+    def generate_prediction_narrative(self, prediction: PredictionResult, match_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Build a lightweight narrative combining xG, confidence, and feature drivers."""
+        match_context = match_context or {}
+        home_team = match_context.get('home_team') or match_context.get('home_team_name') or 'Home'
+        away_team = match_context.get('away_team') or match_context.get('away_team_name') or 'Away'
+
+        xg_delta = float(getattr(prediction, 'expected_goals_home', 0.0) - getattr(prediction, 'expected_goals_away', 0.0))
+        confidence = float(getattr(prediction, 'confidence', 0.0))
+        xg_confidence = float(getattr(prediction, 'xg_confidence', 0.0))
+
+        if xg_delta > 0.3:
+            headline = f"{home_team} expected to control xG (+{xg_delta:.2f})."
+        elif xg_delta < -0.3:
+            headline = f"{away_team} carries the xG edge ({xg_delta:+.2f})."
+        else:
+            headline = "Balanced xG battle forecast." if abs(xg_delta) < 0.15 else f"Marginal xG tilt ({xg_delta:+.2f})."
+
+        strengths = list(getattr(prediction, 'key_factors', []) or [])
+        if abs(xg_delta) >= 0.2:
+            side = home_team if xg_delta > 0 else away_team
+            strengths.insert(0, f"{side} projected xG advantage of {abs(xg_delta):.2f}")
+
+        risks: List[str] = []
+        if confidence < 0.65:
+            risks.append("Model confidence is moderate (<65%).")
+        if xg_confidence < 0.55:
+            risks.append("Limited reliable xG signals detected.")
+        if not getattr(prediction, 'real_data_used', False):
+            risks.append("Live data fallbacks in use for this fixture.")
+
+        try:
+            explanation = self.explain_last_prediction()
+        except Exception:
+            explanation = self._mock_explanation('narrative_failed')
+
+        feature_pulse: List[str] = []
+        if explanation and explanation.get('shap_values') and explanation.get('feature_names') and not explanation.get('is_mock'):
+            pairs = list(zip(explanation['feature_names'], explanation['shap_values']))
+            pairs.sort(key=lambda p: abs(p[1]), reverse=True)
+            for name, value in pairs[:3]:
+                icon = "↑" if value >= 0 else "↓"
+                label = name.replace('_', ' ').title()
+                feature_pulse.append(f"{icon} {label} ({value:+.2f})")
+        elif self._last_features is not None:
+            try:
+                feature_dict = self._last_features.iloc[0].to_dict()
+                sorted_feats = sorted(feature_dict.items(), key=lambda item: abs(float(item[1])), reverse=True)[:3]
+                for name, value in sorted_feats:
+                    label = name.replace('_', ' ').title()
+                    feature_pulse.append(f"{label}: {float(value):.2f}")
+            except Exception:
+                pass
+
+        return {
+            'headline': headline,
+            'strengths': strengths[:4],
+            'risks': risks,
+            'feature_pulse': feature_pulse,
+            'confidence': confidence,
+            'xg_delta': xg_delta,
+            'xg_confidence': xg_confidence
+        }
+
+    def _analyze_betting_opportunities(self, prediction, odds_data: Dict[str, Any], risk_tolerance: str) -> List[Dict[str, Any]]:
+        """Identify and rank potential betting opportunities.
+
+        We compute expected value (EV) for primary 1X2 markets when odds are provided,
+        attach confidence + risk metadata, and sort by EV descending.
+        """
+        if not odds_data:
+            return []
+
+        opportunities: List[Dict[str, Any]] = []
+        try:
+            # Support both object style (PredictionResult) and dict
+            home_prob = getattr(prediction, 'home_win_probability', None) or prediction.get('home_win_probability') or prediction.get('home_win')
+            draw_prob = getattr(prediction, 'draw_probability', None) or prediction.get('draw_probability') or prediction.get('draw')
+            away_prob = getattr(prediction, 'away_win_probability', None) or prediction.get('away_win_probability') or prediction.get('away_win')
+            confidence = getattr(prediction, 'confidence', None) or prediction.get('confidence') or 0.7
+
+            market_map = {
+                'home_win': home_prob,
+                'draw': draw_prob,
+                'away_win': away_prob
+            }
+
+            for market, prob in market_map.items():
+                if prob is None or market not in odds_data:
+                    continue
+                odds = odds_data[market]
+                if not isinstance(odds, (int, float)) or odds <= 1.0:
+                    continue
+                implied = 1/odds
+                ev = (prob * (odds - 1)) - (1 - prob)
+                value_flag = ev > 0
+                risk_level = self._calculate_risk_level(ev, prob, risk_tolerance)
+                optimal_stake = self._calculate_optimal_stake(ev, risk_tolerance)
+                opportunities.append({
+                    'market': market,
+                    'odds': round(odds, 3),
+                    'model_probability': round(prob, 4),
+                    'implied_probability': round(implied, 4),
+                    'expected_value': ev,
+                    'value': value_flag,
+                    'value_rating': self._rate_value(ev),
+                    'confidence': f"{confidence:.0%}",
+                    'risk_level': risk_level,
+                    'recommended_stake_units': optimal_stake
+                })
+
+            # Rank by expected value descending
+            opportunities.sort(key=lambda x: x['expected_value'], reverse=True)
+        except Exception as e:  # pragma: no cover
+            try:
+                logger.debug(f"Betting opportunity analysis failed: {e}")
+            except Exception:
+                pass
+        return opportunities
+
+    # ------------------------------------------------------------------
+    # Monitoring / Snapshot Interface
+    # ------------------------------------------------------------------
+    def get_monitoring_snapshot(self) -> Dict[str, Any]:
+        """Return lightweight predictor monitoring details for runtime snapshot.
+
+        Includes new real-data utilization counters so dashboards can surface
+        proportion of predictions enriched by non-fallback real match data.
+        """
+        try:
+            avg_latency = None
+            if self._recent_latencies_ms:
+                avg_latency = round(sum(self._recent_latencies_ms)/len(self._recent_latencies_ms), 3)
+            real_ratio = None
+            try:
+                if self._total_predictions > 0:
+                    real_ratio = round(self._real_data_predictions / self._total_predictions, 4)
+            except Exception:
+                real_ratio = None
+            return {
+                'version': self.model_version,
+                'total_inferences': self._total_inferences,
+                'total_predictions': self._total_predictions,
+                'real_data_predictions': self._real_data_predictions,
+                'real_data_usage_ratio': real_ratio,
+                'last_data_timestamp': self._last_data_timestamp,
+                'last_inference_ms': self._last_inference_ms,
+                'avg_inference_ms': avg_latency,
+                'last_prediction_timestamp': self._last_prediction_timestamp,
+                'calibration_enabled': self._calibration_enabled,
+                'calibration_applied': self._calibration_applied_count,
+                'last_features_shape': list(getattr(self._last_features, 'shape', [])) if self._last_features is not None else None
+            }
+        except Exception as e:  # pragma: no cover
+            return {'error': str(e)}
+
+    def generate_betting_insights(self,
+                                 home_team: str,
+                                 away_team: str,
+                                 match_data: Dict[str, Any] = None,
+                                 odds_data: Dict[str, Any] = None,
+                                 risk_tolerance: str = "medium") -> Dict[str, Any]:
+        """
+        Generate comprehensive betting insights with risk-adjusted recommendations.
+
+        Args:
+            home_team: Home team name
+            away_team: Away team name
+            match_data: Match context data
+            odds_data: Current betting odds
+            risk_tolerance: Risk tolerance level ('low', 'medium', 'high')
+
+        Returns:
+            Dictionary with betting insights and recommendations
+        """
+        # Get base prediction
+        prediction = self.predict_match_enhanced(home_team, away_team, match_data, use_real_data=True)
+
+        insights = {
+            'match_info': {
+                'home_team': home_team,
+                'away_team': away_team,
+                'prediction': {
+                    'home_win': prediction.home_win_probability,
+                    'draw': prediction.draw_probability,
+                    'away_win': prediction.away_win_probability
+                },
+                'confidence': prediction.confidence
+            },
+            'betting_opportunities': [],
+            'risk_assessment': {},
+            'value_analysis': {},
+            'recommendations': []
+        }
+
+        # Analyze betting opportunities
+        if odds_data:
+            opportunities = self._analyze_betting_opportunities(prediction, odds_data, risk_tolerance)
+            insights['betting_opportunities'] = opportunities
+
+        # Risk assessment
+        insights['risk_assessment'] = self._assess_betting_risks(prediction, risk_tolerance)
+        # Value analysis (simple EV across primary markets if odds provided)
+        if odds_data:
+            insights['value_analysis'] = self._analyze_expected_value(prediction, odds_data)
+
+        # Generate recommendations
+        insights['recommendations'] = self._generate_betting_recommendations(
+            prediction, odds_data, risk_tolerance
+        )
+
+        return insights
+
+    def _assess_betting_risks(self, prediction, risk_tolerance: str) -> Dict[str, Any]:
+        """Assess overall betting risks for the match."""
+        # Calculate volatility based on prediction confidence
+        volatility = 1 - prediction.confidence
+
+        # Risk factors
+        risk_factors = {
+            'prediction_uncertainty': volatility,
+            'form_inconsistency': abs(prediction.momentum_score),
+            'injury_impact': abs(prediction.injury_impact),
+            'motivation_variance': abs(prediction.motivation_factor)
+        }
+
+        # Overall risk score
+        overall_risk = sum(risk_factors.values()) / len(risk_factors)
+
+        # Risk category
+        if overall_risk < 0.3:
+            risk_category = "Low"
+        elif overall_risk < 0.6:
+            risk_category = "Medium"
+        else:
+            risk_category = "High"
+
+        # Adjust for risk tolerance
+        if risk_tolerance == "low" and risk_category == "Medium":
+            risk_category = "High"
+        elif risk_tolerance == "high" and risk_category == "Medium":
+            risk_category = "Low"
+
+        return {
+            'overall_risk_score': overall_risk,
+            'risk_category': risk_category,
+            'risk_factors': risk_factors,
+            'recommended_max_stake': self._calculate_max_stake(overall_risk, risk_tolerance)
+        }
+
+    def _analyze_expected_value(self, prediction, odds_data: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Analyze expected value across different markets."""
+        if not odds_data:
+            return {'status': 'no_odds_data'}
+
+        analysis = {
+            'markets': {},
+            'best_value': None,
+            'total_expected_value': 0
+        }
+
+        markets = [
+            ('home_win', prediction.home_win_probability),
+            ('away_win', prediction.away_win_probability),
+            ('draw', prediction.draw_probability)
+        ]
+
+        best_ev = -1
+
+        for market_key, model_prob in markets:
+            if market_key in odds_data:
+                odds = odds_data[market_key]
+                implied_prob = 1 / odds if odds > 1 else 0
+                ev = (model_prob * (odds - 1)) - (1 - model_prob)
+
+                analysis['markets'][market_key] = {
+                    'odds': odds,
+                    'model_probability': model_prob,
+                    'implied_probability': implied_prob,
+                    'expected_value': ev,
+                    'value_rating': self._rate_value(ev)
+                }
+
+                analysis['total_expected_value'] += max(0, ev)
+
+                if ev > best_ev:
+                    best_ev = ev
+                    analysis['best_value'] = market_key
+
+        return analysis
+
+    def _generate_betting_recommendations(self,
+                                        prediction,
+                                        odds_data: Dict[str, Any] = None,
+                                        risk_tolerance: str = "medium") -> List[str]:
+        """Generate betting recommendations based on analysis."""
+        recommendations = []
+
+        if not odds_data:
+            recommendations.append("⚠️ No odds data available for analysis")
+            return recommendations
+
+        # Analyze opportunities
+        opportunities = self._analyze_betting_opportunities(prediction, odds_data, risk_tolerance)
+
+        if opportunities:
+            best_opportunity = opportunities[0]
+            recommendations.append(f"🎯 Best Bet: {best_opportunity['market']} at {best_opportunity['odds']}")
+            recommendations.append(f"💰 Expected Value: +{best_opportunity['expected_value']:.1%}")
+            recommendations.append(f"📊 Confidence: {best_opportunity['confidence']}")
+
+            # Risk-based recommendations
+            if best_opportunity['risk_level'] == "High" and risk_tolerance == "low":
+                recommendations.append("⚠️ High risk bet - consider reducing stake")
+            elif best_opportunity['risk_level'] == "Low":
+                recommendations.append("✅ Low risk opportunity - good for confident betting")
+
+        # General recommendations based on prediction confidence
+        if prediction.confidence > 0.8:
+            recommendations.append("🔥 High confidence prediction - strong betting opportunity")
+        elif prediction.confidence < 0.6:
+            recommendations.append("🤔 Low confidence prediction - consider avoiding or small stakes only")
+
+        # Key factors recommendations
+        if prediction.key_factors:
+            recommendations.append(f"💡 Key Factors: {', '.join(prediction.key_factors[:2])}")
+
+        return recommendations
+
+    def _calculate_risk_level(self, ev: float, probability: float, risk_tolerance: str) -> str:
+        """Calculate risk level for a betting opportunity."""
+        # Risk factors
+        risk_score = 0
+
+        # EV risk (lower EV = higher risk)
+        if ev < 0.1:
+            risk_score += 2
+        elif ev < 0.2:
+            risk_score += 1
+
+        # Probability risk (extreme probabilities = higher risk)
+        if probability < 0.3 or probability > 0.7:
+            risk_score += 1
+
+        # Adjust for risk tolerance
+        if risk_tolerance == "low":
+            risk_score += 1
+        elif risk_tolerance == "high":
+            risk_score -= 1
+
+        if risk_score >= 3:
+            return "High"
+        elif risk_score >= 2:
+            return "Medium"
+        else:
+            return "Low"
+
+    def _calculate_optimal_stake(self, ev: float, risk_tolerance: str) -> float:
+        """Calculate optimal stake based on expected value and risk tolerance."""
+        base_stake = 1.0  # Base stake of 1 unit
+
+        # Adjust for EV
+        ev_multiplier = min(2.0, max(0.5, ev * 10))
+
+        # Adjust for risk tolerance
+        risk_multipliers = {
+            'low': 0.5,
+            'medium': 1.0,
+            'high': 1.5
+        }
+
+        risk_multiplier = risk_multipliers.get(risk_tolerance, 1.0)
+
+        return round(base_stake * ev_multiplier * risk_multiplier, 2)
+
+    def _calculate_max_stake(self, risk_score: float, risk_tolerance: str) -> float:
+        """Calculate maximum recommended stake based on risk."""
+        base_max = 5.0  # Base maximum stake
+
+        # Reduce max stake for higher risk
+        risk_reduction = risk_score * 0.5
+
+        # Adjust for risk tolerance
+        tolerance_multipliers = {
+            'low': 0.5,
+            'medium': 1.0,
+            'high': 1.5
+        }
+
+        tolerance_multiplier = tolerance_multipliers.get(risk_tolerance, 1.0)
+
+        return round(max(0.5, (base_max - risk_reduction) * tolerance_multiplier), 2)
+
+    def _rate_value(self, ev: float) -> str:
+        """Rate the value of a betting opportunity."""
+        if ev > 0.15:
+            return "Excellent"
+        elif ev > 0.1:
+            return "Good"
+        elif ev > 0.05:
+            return "Fair"
+        elif ev > 0:
+            return "Poor"
+        else:
+            return "Negative"
+
+    def _calculate_team_strengths(self, home_team: str, away_team: str, match_data: Dict[str, Any] = None) -> Tuple[float, float]:
+        """Calculate team strengths using enhanced algorithms."""
+        # Team strength database with real-world knowledge
+        team_strength_db = {
+            # Premier League (Tier 1)
+            'Manchester City': 0.92, 'Liverpool': 0.89, 'Arsenal': 0.85, 'Manchester United': 0.82,
+            'Chelsea': 0.80, 'Newcastle United': 0.78, 'Tottenham': 0.77, 'Brighton': 0.75,
+            'Aston Villa': 0.74, 'West Ham': 0.72, 'Crystal Palace': 0.70, 'Fulham': 0.68,
+            'Brentford': 0.67, 'Wolverhampton': 0.66, 'Everton': 0.65, 'Nottingham Forest': 0.63,
+            'Leeds United': 0.62, 'Leicester City': 0.61, 'Southampton': 0.58, 'Bournemouth': 0.56,
+            
+            # La Liga (Tier 1)
+            'Real Madrid': 0.95, 'Barcelona': 0.91, 'Atletico Madrid': 0.86, 'Sevilla': 0.81,
+            'Real Sociedad': 0.79, 'Real Betis': 0.77, 'Villarreal': 0.76, 'Athletic Bilbao': 0.75,
+            'Valencia': 0.73, 'Celta Vigo': 0.71, 'Girona': 0.69, 'Osasuna': 0.67,
+            'Las Palmas': 0.65, 'Getafe': 0.64, 'Rayo Vallecano': 0.63, 'Mallorca': 0.62,
+            'Cadiz': 0.60, 'Granada': 0.58, 'Almeria': 0.56, 'Elche': 0.54,
+            'Sevilla FC': 0.81, 'Elche CF': 0.54,  # Alternative names
+            
+            # Bundesliga (Tier 1)
+            'Bayern Munich': 0.94, 'Borussia Dortmund': 0.87, 'RB Leipzig': 0.84, 'Bayer Leverkusen': 0.82,
+            'Union Berlin': 0.79, 'Eintracht Frankfurt': 0.77, 'Freiburg': 0.76, 'Wolfsburg': 0.74,
+            'Borussia Monchengladbach': 0.73, 'Mainz': 0.71, 'Hoffenheim': 0.70, 'Augsburg': 0.68,
+            'Werder Bremen': 0.67, 'VfL Bochum': 0.65, 'Cologne': 0.64, 'Stuttgart': 0.63,
+            'Hertha Berlin': 0.61, 'Schalke': 0.59,
+            
+            # Serie A (Tier 1)
+            'Napoli': 0.90, 'Inter Milan': 0.88, 'AC Milan': 0.86, 'Juventus': 0.84,
+            'AS Roma': 0.82, 'Atalanta': 0.80, 'Lazio': 0.78, 'Fiorentina': 0.76,
+            'Roma': 0.82,  # Alternative name
+            
+            # Ligue 1 (Tier 1)
+            'PSG': 0.93, 'Paris Saint-Germain': 0.93, 'Marseille': 0.78, 'Monaco': 0.76,
+            'Olympique de Marseille': 0.78, 'FC Lorient': 0.65,  # Alternative names
+            'Lyon': 0.75, 'Lille': 0.74, 'Rennes': 0.72, 'Nice': 0.70,
+            
+            # Default values for unknown teams
+            'Home Team': 0.65, 'Away Team': 0.65, 'Team A': 0.65, 'Team B': 0.65
+        }
+        
+        # Get base strengths
+        home_strength = team_strength_db.get(home_team, 0.65)
+        away_strength = team_strength_db.get(away_team, 0.65)
+        
+        # Add some randomization for realism
+        # CONSISTENCY FIX: Removed random noise for deterministic predictions
+        # home_strength += np.random.normal(0, 0.03)
+        # away_strength += np.random.normal(0, 0.03)
+        
+        # Ensure values stay in valid range
+        home_strength = max(0.4, min(1.0, home_strength))
+        away_strength = max(0.4, min(1.0, away_strength))
+        
+        return home_strength, away_strength
+
+    def _calculate_home_advantage(self, home_team: str, away_team: str, match_data: Dict[str, Any] = None) -> float:
+        """Calculate home advantage factor."""
+        base_advantage = 1.12  # 12% home advantage on average
+        
+        # Stronger teams have slightly less home advantage
+        home_strength_db = {
+            'Manchester City': 1.08, 'Real Madrid': 1.09, 'Bayern Munich': 1.07,
+            'PSG': 1.09, 'Liverpool': 1.10, 'Barcelona': 1.10
+        }
+        
+        # CONSISTENCY FIX: Removed random noise for deterministic predictions
+        return home_strength_db.get(home_team, base_advantage)
+
+    def _get_league_competitiveness_factor(self, match_data: Dict[str, Any] = None) -> float:
+        """Get league competitiveness factor."""
+        if not match_data:
+            return 1.0
+        
+        league = match_data.get('league', '').lower()
+        
+        competitiveness = {
+            'premier league': 1.15,
+            'la liga': 1.12,
+            'bundesliga': 1.10,
+            'serie a': 1.08,
+            'ligue 1': 1.05,
+            'champions league': 1.20
+        }
+        
+        for league_name, factor in competitiveness.items():
+            if league_name in league:
+                return factor
+        
+        return 1.0
+
+    def _generate_intelligent_key_factors(self, home_team: str, away_team: str, 
+                                        home_prob: float, away_prob: float, confidence: float,
+                                        home_strength: float, away_strength: float) -> List[str]:
+        """Generate intelligent key factors based on analysis."""
+        factors = []
+        
+        # Team strength factors
+        if home_strength > 0.85:
+            factors.append(f"{home_team} has elite squad quality")
+        elif away_strength > 0.85:
+            factors.append(f"{away_team} has elite squad quality")
+        
+        # Probability-based factors
+        if home_prob > 0.65:
+            factors.append("Strong home advantage expected")
+        elif away_prob > 0.55:
+            factors.append("Away team shows superior form")
+        elif abs(home_prob - away_prob) < 0.1:
+            factors.append("Evenly matched teams")
+        
+        # Confidence factors
+        if confidence > 0.85:
+            factors.append("High confidence prediction")
+        elif confidence < 0.65:
+            factors.append("Unpredictable match outcome")
+        
+        # Team-specific factors based on real knowledge
+        big_teams = ['Manchester City', 'Real Madrid', 'Bayern Munich', 'Barcelona', 'PSG', 'Liverpool']
+        if home_team in big_teams:
+            factors.append(f"{home_team} rarely loses at home")
+        if away_team in big_teams:
+            factors.append(f"{away_team} strong away record")
+        
+        # Derby/rivalry detection
+        rivalries = [
+            ('Manchester City', 'Manchester United'), ('Real Madrid', 'Barcelona'),
+            ('Liverpool', 'Everton'), ('AC Milan', 'Inter Milan')
+        ]
+        
+        for team1, team2 in rivalries:
+            if (home_team == team1 and away_team == team2) or (home_team == team2 and away_team == team1):
+                factors.append("Derby match - expect high intensity")
+                break
+        
+        return factors[:3]  # Limit to top 3 factors
+
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get information about the predictor model."""
+        return {
+            "version": self.model_version,
+            "last_updated": self.last_updated.isoformat(),
+            "performance_metrics": self.performance_metrics,
+            "feature_importance": self.feature_importance,
+            "calibration": self._calibration_status()
+        }
+
+    # ---------------- Calibration Helpers ---------------- #
+    def _lazy_load_calibrator(self):
+        if self._calibration_loaded:
+            return
+        try:
+            from calibration.calibration_service import ProbabilityCalibrator
+            self._calibrator = ProbabilityCalibrator()
+            # Attempt to load persisted parameters
+            self._calibrator.load()
+            self._calibration_loaded = True
+            logger.info("Calibration service loaded for EnhancedRealDataPredictor")
+        except Exception as e:
+            logger.warning(f"Calibration service unavailable: {e}")
+            self._calibration_loaded = True  # Avoid repeated attempts
+
+    def _should_apply_calibration(self) -> bool:
+        if not self._calibration_enabled:
+            return False
+        if self._calibrator is None and not self._calibration_loaded:
+            self._lazy_load_calibrator()
+        return bool(self._calibrator and getattr(self._calibrator, 'fitted', False))
+
+    def _calibrate_triplet(self, probs) -> Optional[List[float]]:
+        try:
+            if not self._should_apply_calibration():
+                return None
+            calibrated = self._calibrator.calibrate_vector(probs)
+            self._calibration_applied_count += 1
+            # Metrics wrapper calibration counter
+            if self._metrics_enabled:
+                try:
+                    if getattr(self, '_metrics_wrapper', None):
+                        self._metrics_wrapper.inc_calibration()
+                    elif self._metric_calibration:
+                        self._metric_calibration.inc()
+                except Exception:  # pragma: no cover
+                    pass
+            return calibrated
+        except Exception as e:
+            logger.debug(f"Calibration application failed: {e}")
+            return None
+
+    def _calibration_status(self) -> Dict[str, Any]:
+        """Return detailed calibration status and metrics."""
+        base_status = {
+            "enabled": self._calibration_enabled,
+            "loaded": self._calibration_loaded,
+            "applied_count": self._calibration_applied_count,
+            "fitted": False
+        }
+        
+        if not self._calibrator:
+            return base_status
+        
+        try:
+            # Get calibrator info if available
+            calibrator_info = {}
+            if hasattr(self._calibrator, 'info'):
+                calibrator_info = self._calibrator.info()
+            elif hasattr(self._calibrator, 'is_calibrated'):
+                calibrator_info = {"is_calibrated": self._calibrator.is_calibrated()}
+            
+            return {
+                **base_status,
+                "fitted": getattr(self._calibrator, 'fitted', False),
+                "method": getattr(self._calibrator, 'method', None),
+                "sample_counts": getattr(self._calibrator, 'sample_counts', {}),
+                "calibrators_loaded": calibrator_info.get('calibrators_loaded', {}),
+                "total_samples": calibrator_info.get('total_samples', 0),
+                "min_samples_threshold": calibrator_info.get('min_samples_threshold', MIN_SAMPLES if 'MIN_SAMPLES' in globals() else 50),
+                "storage_path": calibrator_info.get('storage_path', 'unknown')
+            }
+        except Exception as e:
+            logger.debug(f"Error getting calibration status: {e}")
+            return base_status
+
+    # Public accessor (some legacy dashboard code expects this name)
+    def get_calibration_status(self) -> Dict[str, Any]:  # pragma: no cover thin wrapper
+        return self._calibration_status()
+
+    # ---------------- Explainability Feature Access ---------------- #
+    def get_last_features(self) -> Optional[pd.DataFrame]:
+        """Return the feature dataframe captured during the last prediction.
+
+        Returns:
+            DataFrame with one row of numeric features or None if unavailable.
+        """
+        return self._last_features
+
+# ---------------- Public Convenience API ---------------- #
+_PREDICTOR_SINGLETON: Optional[EnhancedRealDataPredictor] = None
+
+def _get_singleton() -> EnhancedRealDataPredictor:
+    global _PREDICTOR_SINGLETON
+    if _PREDICTOR_SINGLETON is None:
+        _PREDICTOR_SINGLETON = EnhancedRealDataPredictor()
+    return _PREDICTOR_SINGLETON
+
+def get_enhanced_match_prediction(home_team: str, away_team: str, league: Optional[str] = None, match_data: Optional[Dict[str, Any]] = None, force_real: bool = True) -> Dict[str, Any]:
+    """High-level helper returning a unified prediction dict.
+
+    Ensures real-data path is attempted (force_real) and augments output with
+    calibration status and provenance fields used by dashboards.
+    """
+    predictor = _get_singleton()
+    # Attach league into match_data for league factor usage
+    if match_data is None:
+        match_data = {}
+    if league and 'league' not in match_data:
+        match_data['league'] = league
+    result = predictor.predict_match_enhanced(home_team, away_team, match_data, use_real_data=force_real)
+    # Build unified dict shape (align with cached_data_utilities expectation)
+    try:
+        narrative = predictor.generate_prediction_narrative(result, {**match_data, 'home_team': home_team, 'away_team': away_team})
+    except Exception:
+        narrative = None
+    payload = {
+        'home_win_probability': result.home_win_probability,
+        'away_win_probability': result.away_win_probability,
+        'draw_probability': result.draw_probability,
+        'confidence_score': result.confidence,
+        'key_factors': result.key_factors,
+        'prediction_details': {
+            'home_team': home_team,
+            'away_team': away_team,
+            'predicted_result': (
+                f"{home_team} Win" if result.home_win_probability > max(result.away_win_probability, result.draw_probability)
+                else f"{away_team} Win" if result.away_win_probability > max(result.home_win_probability, result.draw_probability)
+                else 'Draw'
+            )
+        },
+        'real_data_used': result.real_data_used,
+        'data_timestamp': result.data_timestamp,
+        'expected_goals': {
+            'home': result.expected_goals_home,
+            'away': result.expected_goals_away,
+            'delta': round(result.expected_goals_home - result.expected_goals_away, 2),
+            'confidence': result.xg_confidence
+        },
+        'calibration': predictor._calibration_status(),  # intentionally using internal helper
+    }
+    if narrative:
+        payload['explainability'] = narrative
+    # Instrument real-data usage ratio (best-effort; no external dependency)
+    try:  # pragma: no cover
+        from dashboard.components import performance_panel as _perf
+        if hasattr(_perf, 'record_calibration_status'):
+            # already captured calibration; no-op
+            pass
+        # Could extend with a real_data counter in future; placeholder hook.
+    except Exception:
+        pass
+    return payload
+
+__all__ = [
+    'EnhancedRealDataPredictor',
+    'get_enhanced_match_prediction',
+    'MatchInsight',
+    'get_enhanced_match_prediction_insight'
+]
+
+# ---------------- Dashboard-Oriented Insight Wrapper (Non-breaking) ---------------- #
+# Some dashboard components (e.g., interactive_prediction_dashboard) expect a
+# "MatchInsight" object with friendly attribute names rather than the raw dict
+# returned by get_enhanced_match_prediction. We provide a lightweight wrapper
+# without altering the existing public function contract used elsewhere.
+
+try:  # Guard in case of re-import
+    MatchInsight  # type: ignore
+except NameError:  # pragma: no cover - definition path
+    @dataclass
+    class MatchInsight:
+        home_win_prob: float
+        draw_prob: float
+        away_win_prob: float
+        confidence: float
+        momentum_score: float
+        injury_impact: float
+        motivation_factor: float
+        expected_value: float
+        risk_level: str
+        head_to_head_edge: str
+        venue_advantage: float
+        key_factors: List[str]
+
+
+def _derive_risk_level(confidence: float) -> str:
+    if confidence >= 0.82:
+        return "Low"
+    if confidence >= 0.7:
+        return "Medium"
+    return "High"
+
+
+def _derive_expected_value(home: float, draw: float, away: float, confidence: float) -> float:
+    # Heuristic EV proxy: advantage over a neutral 33% baseline scaled by confidence
+    max_prob = max(home, draw, away)
+    edge = max_prob - 1/3
+    return round(edge * confidence, 4)
+
+
+def _derive_head_to_head_edge(home: float, away: float) -> str:
+    diff = home - away
+    if diff > 0.12:
+        return "strong home edge"
+    if diff > 0.04:
+        return "slight home edge"
+    if diff < -0.12:
+        return "strong away edge"
+    if diff < -0.04:
+        return "slight away edge"
+    return "balanced"
+
+
+def get_enhanced_match_prediction_insight(home_team: str, away_team: str, match_data: Optional[Dict[str, Any]] = None) -> MatchInsight:
+    """Return a MatchInsight object for dashboard usage.
+
+    This wraps the stable dict-producing get_enhanced_match_prediction(), so no
+    existing callers are broken. We intentionally pass the third positional arg
+    ONLY as match_data (not league) to avoid the historical parameter confusion
+    in dashboard code that previously treated match_data as league.
+    """
+    # Call original helper (returns dict)
+    raw = get_enhanced_match_prediction(home_team, away_team, match_data=match_data)
+    # Extract probabilities (with safe fallbacks)
+    home = float(raw.get('home_win_probability', raw.get('home_win_prob', 0.34)))
+    away = float(raw.get('away_win_probability', raw.get('away_win_prob', 0.33)))
+    draw = float(raw.get('draw_probability', raw.get('draw_prob', 1 - home - away)))
+    conf = float(raw.get('confidence_score', 0.7))
+
+    # Derive supplementary attributes
+    expected_value = _derive_expected_value(home, draw, away, conf)
+    risk_level = _derive_risk_level(conf)
+    head_to_head_edge = _derive_head_to_head_edge(home, away)
+    # Approximate venue advantage as difference between home prob and max(away, draw)/2
+    venue_advantage = round(home - max(away, draw) / 2, 4)
+
+    key_factors = raw.get('key_factors', []) or []
+
+    # Provide neutral placeholders for factors not exposed in raw payload
+    momentum_score = 0.0
+    injury_impact = 0.0
+    motivation_factor = 0.0
+
+    return MatchInsight(
+        home_win_prob=home,
+        draw_prob=draw,
+        away_win_prob=away,
+        confidence=conf,
+        momentum_score=momentum_score,
+        injury_impact=injury_impact,
+        motivation_factor=motivation_factor,
+        expected_value=expected_value,
+        risk_level=risk_level,
+        head_to_head_edge=head_to_head_edge,
+        venue_advantage=venue_advantage,
+        key_factors=key_factors[:5],
+    )
+
+

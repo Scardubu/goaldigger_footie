@@ -1,0 +1,85 @@
+{
+  "achievement_categories": {
+    "prediction_accuracy": {
+      "novice_predictor": {
+        "threshold": 5,
+        "reward": "Bronze Badge"
+      },
+      "skilled_analyst": {
+        "threshold": 25,
+        "reward": "Silver Badge"
+      },
+      "master_predictor": {
+        "threshold": 100,
+        "reward": "Gold Badge"
+      },
+      "legendary_oracle": {
+        "threshold": 500,
+        "reward": "Platinum Badge"
+      }
+    },
+    "cross_league_expertise": {
+      "league_explorer": {
+        "threshold": 3,
+        "reward": "Explorer Badge"
+      },
+      "continental_expert": {
+        "threshold": 10,
+        "reward": "Expert Badge"
+      },
+      "global_analyst": {
+        "threshold": 25,
+        "reward": "Global Badge"
+      }
+    },
+    "engagement_milestones": {
+      "daily_user": {
+        "threshold": 7,
+        "reward": "Consistency Badge"
+      },
+      "weekly_champion": {
+        "threshold": 30,
+        "reward": "Champion Badge"
+      },
+      "monthly_legend": {
+        "threshold": 90,
+        "reward": "Legend Badge"
+      }
+    },
+    "betting_insights": {
+      "value_hunter": {
+        "threshold": 10,
+        "reward": "Hunter Badge"
+      },
+      "profit_master": {
+        "threshold": 50,
+        "reward": "Master Badge"
+      },
+      "roi_king": {
+        "threshold": 100,
+        "reward": "King Badge"
+      }
+    }
+  },
+  "gamification_features": {
+    "progress_bars": true,
+    "level_system": true,
+    "leaderboards": true,
+    "streak_tracking": true,
+    "social_sharing": true,
+    "achievement_notifications": true
+  },
+  "reward_system": {
+    "points_per_prediction": 10,
+    "bonus_multipliers": {
+      "cross_league": 1.5,
+      "high_confidence": 2.0,
+      "accurate_prediction": 3.0
+    },
+    "unlock_features": {
+      "advanced_analytics": 100,
+      "premium_insights": 500,
+      "api_access": 1000
+    }
+  }
+}

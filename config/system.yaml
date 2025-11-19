@@ -1,0 +1,27 @@
+# config/system.yaml
+performance:
+  scraping:
+    timeout: 30 # Default request/navigation timeout in seconds
+    retries: 3  # Default number of retries for scraping tasks
+  model:
+    batch_size: 32 # Batch size for model predictions
+    # Precision needs dynamic check, placeholder here. Actual check should be in code.
+    # precision: 'fp16' if torch.cuda.is_available() else 'fp32' # Example logic
+    precision: 'fp32' # Default to fp32, code should override if GPU available
+  monitoring:
+    interval: 300 # Interval for monitoring checks/updates in seconds (e.g., 5 minutes)
+    retention: 604800  # Data retention period in seconds (e.g., 7 days)
+
+integration:
+  components:
+    - scraper
+    - model
+    - validator
+    - dashboard
+  # Defines the intended high-level data flow between components
+  data_flow: scraper -> validator -> model -> dashboard
+
+# Add other system-wide settings as needed
+# e.g., global logging levels, feature flags, etc.
+logging:
+  level: INFO # Default logging level for the system

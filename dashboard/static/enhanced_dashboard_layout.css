@@ -1,0 +1,476 @@
+/* 
+ * Enhanced Dashboard Layout CSS for GoalDiggers
+ * This file provides comprehensive styling for the GoalDiggers dashboard
+ * to ensure a consistent, aesthetically pleasing, and professional appearance.
+ */
+
+/* Base Variables */
+:root {
+    --color-primary: #1e3c72;
+    --color-primary-light: #2a5298;
+    --color-secondary: #764ba2;
+    --color-accent: #4facfe;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-info: #3b82f6;
+    
+    --color-text: #1f2937;
+    --color-text-secondary: #6b7280;
+    --color-surface: #ffffff;
+    --color-background: #f8fafc;
+    --color-border: #e5e7eb;
+    
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-secondary: 'Inter', system-ui, sans-serif;
+    
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+    
+    --transition-speed: 0.3s;
+}
+
+/* Base Styles */
+body, .stApp {
+    font-family: var(--font-primary);
+    color: var(--color-text);
+    background-color: var(--color-background);
+    line-height: 1.6;
+}
+
+/* Remove default Streamlit header/footer */
+.stApp header {
+    display: none !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 1.875rem;
+}
+
+h3 {
+    font-size: 1.5rem;
+}
+
+h4 {
+    font-size: 1.25rem;
+}
+
+h5 {
+    font-size: 1.125rem;
+}
+
+h6 {
+    font-size: 1rem;
+}
+
+/* Cards and Containers */
+.card {
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    margin: 1rem 0;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-primary {
+    border-left: 4px solid var(--color-primary);
+}
+
+.card-success {
+    border-left: 4px solid var(--color-success);
+}
+
+.card-warning {
+    border-left: 4px solid var(--color-warning);
+}
+
+.card-danger {
+    border-left: 4px solid var(--color-danger);
+}
+
+/* Dashboard Header */
+.dashboard-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    color: white;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard-header h1 {
+    color: white;
+    margin: 0;
+    font-weight: 700;
+    font-size: 2.5rem;
+}
+
+.dashboard-header p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0.5rem 0 0 0;
+}
+
+/* Navigation */
+.nav-pills {
+    display: flex;
+    gap: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+    border-radius: var(--border-radius-lg);
+    margin: 1rem 0;
+}
+
+.nav-pill {
+    padding: 0.5rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    color: white;
+    text-align: center;
+}
+
+.nav-pill.active {
+    background-color: white;
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-pill:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-badge.success {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+}
+
+.status-badge.warning {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--color-warning);
+}
+
+.status-badge.danger {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--color-danger);
+}
+
+.status-badge.info {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--color-info);
+}
+
+/* KPI Cards */
+.kpi-card {
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    margin: 0.5rem 0;
+    box-shadow: var(--shadow-md);
+    border-left: 3px solid var(--color-primary);
+}
+
+.kpi-card .label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.kpi-card .value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0.25rem 0;
+}
+
+.kpi-card .delta {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.kpi-card .delta.positive {
+    color: var(--color-success);
+}
+
+.kpi-card .delta.negative {
+    color: var(--color-danger);
+}
+
+/* Match Cards */
+.match-card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius-lg);
+    padding: 1.25rem;
+    margin: 0.75rem 0;
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-border);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.match-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+}
+
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.match-league {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.match-time {
+    font-size: 0.75rem;
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--color-info);
+    padding: 0.125rem 0.5rem;
+    border-radius: 50px;
+    font-weight: 500;
+}
+
+.match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0.75rem 0;
+}
+
+.match-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.team-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.versus {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin: 0 1rem;
+}
+
+.match-odds {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.odds-pill {
+    flex: 1;
+    text-align: center;
+    padding: 0.375rem 0.5rem;
+    border-radius: var(--border-radius-md);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.odds-home {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+}
+
+.odds-draw {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--color-warning);
+}
+
+.odds-away {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--color-danger);
+}
+
+.value-bet-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: var(--color-success);
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Form Indicators */
+.form-indicators {
+    display: flex;
+    gap: 2px;
+}
+
+.form-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.form-win {
+    background-color: var(--color-success);
+}
+
+.form-draw {
+    background-color: var(--color-warning);
+}
+
+.form-loss {
+    background-color: var(--color-danger);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Progress Bars */
+.progress-container {
+    width: 100%;
+    background-color: var(--color-border);
+    border-radius: 50px;
+    height: 8px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 50px;
+    transition: width 1s ease;
+}
+
+.progress-success {
+    background-color: var(--color-success);
+}
+
+.progress-warning {
+    background-color: var(--color-warning);
+}
+
+.progress-danger {
+    background-color: var(--color-danger);
+}
+
+.progress-info {
+    background-color: var(--color-info);
+}
+
+/* Utility Classes */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .card, .match-card, .kpi-card {
+        padding: 1rem;
+    }
+    
+    .nav-pill {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+}

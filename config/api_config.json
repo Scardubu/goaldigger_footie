@@ -1,0 +1,12 @@
+{
+  "football_data_org": {
+    "base_url": "https://api.football-data.org/v4",
+    "rate_limit": 10,
+    "timeout": 30
+  },
+  "api_football": {
+    "base_url": "https://api-football-v1.p.rapidapi.com/v3",
+    "rate_limit": 100,
+    "timeout": 30
+  }
+}

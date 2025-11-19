@@ -1,0 +1,196 @@
+# GoalDiggers Unified Configuration
+# This file consolidates all configuration settings
+
+# Scraping Configuration
+scraping:
+  sources:
+    primary:
+      - name: "Football-Data"
+        type: "json"
+        url: "https://api.football-data.org/v4"
+        endpoints:
+          matches: "/competitions/{competition}/matches"
+          standings: "/competitions/{competition}/standings"
+          teams: "/teams/{team_id}"
+          competitions: "/competitions"
+          competition: "/competitions/{competition}"
+        auth_type: "header"
+        env_var: "FOOTBALL_DATA_API_KEY"
+        rate_limit: 10
+        request_interval_seconds: 6
+        headers:
+          "X-Auth-Token": "${FOOTBALL_DATA_API_KEY}"
+        league_codes:
+          premier_league: "PL"
+          la_liga: "PD"
+          bundesliga: "BL1"
+          serie_a: "SA"
+          ligue_1: "FL1"
+          eredivisie: "DED"
+          
+      - name: "API-Football"
+        type: "json"
+        url: "https://api-football-v1.p.rapidapi.com/v3"
+        auth_type: "header"
+        headers:
+          "X-RapidAPI-Key": "${API_FOOTBALL_KEY}"
+          "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+        rate_limit: 5
+        
+      - name: "OpenWeather"
+        type: "json"
+        url: "https://api.openweathermap.org/data/2.5/weather"
+        env_var: "OPENWEATHER_API_KEY"
+        rate_limit: 60
+
+    fallback:
+      - name: "Understat"
+        type: "html"
+        url: "https://understat.com"
+        use_playwright: true
+        
+      - name: "FBref"
+        type: "html"
+        url: "https://fbref.com"
+        use_playwright: true
+
+# Environment Configuration
+env:
+  required:
+    - "FOOTBALL_DATA_API_KEY"
+  optional:
+    - "API_FOOTBALL_KEY"
+    - "OPENWEATHER_API_KEY"
+    - "SPORTSDATAIO_KEY"
+
+# System Configuration
+system:
+  firecrawl:
+    auto_start: false
+    timeout: 30
+    retry_attempts: 3
+  startup:
+    validate_apis: true
+    validate_database: true
+    validate_scrapers: true
+    timeout: 120
+
+# Database Configuration
+database:
+  uri: "sqlite:///data/football.db"
+  pool_size: 10
+  max_overflow: 20
+
+# Validation Configuration
+validation:
+  ai_validator:
+    impute_on_missing: true
+    drift_threshold: 0.1
+    outlier_detection: true
+    schema_validation: true
+    data_quality_checks: true
+  preprocessing:
+    validation:
+      imputer_params:
+        max_iter: 10
+        random_state: 42
+        initial_strategy: "median"
+      outlier_params:
+        contamination: "auto"
+        random_state: 42
+      drift_threshold_relative: 0.1
+      strict_weather_validation: false
+
+# Model Configuration
+models:
+  xgboost:
+    hyperparameters:
+      learning_rate: 0.1
+      max_depth: 6
+      subsample: 0.8
+      n_estimators: 200
+    early_stopping_rounds: 20
+
+  ensemble:
+    weights:
+      static: 0.7
+      dynamic: 0.3
+    update_interval: 86400
+    enable_gpu: true
+    dynamic_batch_size: 1
+    base_learners:
+      - "xgboost"
+      - "lightgbm"
+      - "mlp"
+    meta_learner: "logistic"
+  
+  training:
+    early_stopping_rounds: 50
+    eval_metric: "logloss"
+    num_boost_round: 1000
+    batch_size: 1024
+
+# Playwright Configuration
+playwright:
+  headless: true
+  timeout: 120000
+  wait_until: 'networkidle'
+
+# Hyperparameter Search Configuration
+hyperparameter_search:
+  n_trials: 50
+  timeout: 3600  # seconds
+
+# Distributed Computing Configuration
+distributed:
+  backend: "dask"  # or "ray"
+
+# Monitoring Configuration
+monitoring:
+  prometheus:
+    host: "0.0.0.0"
+    port: 8000
+
+# MLflow Configuration
+mlflow:
+  tracking_uri: "http://localhost:5000"
+  experiment_name: "FootballInsights"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+
+# Class Balance Configuration
+class_balance:
+  use_focal_loss: true
+  alpha: 0.25
+  gamma: 2.0
+
+# AI Insights Configuration
+dashboard:
+  ai_analysis:
+    # Set provider to openai to enable GPT-5 (Preview) universally
+    provider: "openai"
+    # Model can be changed via env OPENAI_MODEL_NAME; default to GPT-5 Preview if available
+    model: "gpt-5-preview"
+    analysis_aspects:
+      - name: "Match Overview"
+        key: "overview"
+      - name: "Team Form"
+        key: "form"
+      - name: "Key Factors"
+        key: "factors"
+      - name: "Prediction Confidence"
+        key: "confidence"
+
+paths:
+  project_root: .
+  models:
+    base: models/trained
+    predictor_filename: predictor_model.joblib
+    dynamic_predictor_filename: dynamic_predictor_model.joblib
+  data:
+    reference:
+      matches: "data/reference/valid_matches.csv"
+    raw_path: "./data/raw"
+    cache_path: "./data/cache"
